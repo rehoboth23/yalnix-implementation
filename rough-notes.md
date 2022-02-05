@@ -29,6 +29,8 @@ The above, sketches and pseudocode, should be done in our real source-files as c
   - we need to signal them :D 
   - **UPDATE PIPEWRITE PSEUDOCODE**
 
+- 
+
 ## Checkpoint 2: Idle
 
 ### Requirements
@@ -51,6 +53,7 @@ The above, sketches and pseudocode, should be done in our real source-files as c
   - Write `int SetKernelBrk(void * addr)`
     - `addr` is similar to what's used in calls to `brk`: it's the lowest location not used in our kernel
     - we need a flag in our kernel that checks if we have enable virtual memory, before it's enabled, ``SetKernelBrk` only needs to check if and by how kernel `brk` is being raised beyond `_kernel_orig_brk`, after VM is enabled, then our `SetKernelBrk` acts like the standard `Brk`. i.e. This function has two behaviors depending on whether or not virtual memory is enabled
+      - the flag is provided by hardware, check 2.2.6, we call `WriteRegister(REG_VM_ENABLE, 1)` to set it,and I assume there's a ReadRegister function for checking.
     - then, enable virtual memory, but note, if we already raised our kernel's brk since we've built the Region 0 page table, we need to adjust the page table before turning the VM on -- otherwise shit could get ugly
 
 - Traps
@@ -88,7 +91,17 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 
     - ADD A TRACEPRINT "leaving KernelStart" at the end of `KernelStart`
 
-### 
+### Questions
+
+- how to use `helper_maybort(char *msg)`
+- where is `KERNEL_STACK_BASE`? is it at the bottom of the stack, (lower addresses) or at the top (higher addresses). The manual says that `KERNEL_STACK_LIMIT` is at the extreme top of region 0 of virtual memory, so that's at higher addresses
+
+### TODO
+
+- edit makefile to build `boot.c` to get the `yalnix` executable
+- write `boot.c`
+  - includes yUser, yhardware, ylib and ykernel
+  - contains `KernelStart`
 
 ## Notes
 
@@ -96,7 +109,7 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 
 **Process/PCB** 
 
-- *page table* (structure provided for us)
+- *page table* (structure provided for us in `hardware.h`)
   - each page table is an array of pagetable entries, here's how it's organized: 1st bit is valid bit, next 3 bits are protection bits (read, write, exec), next 4 bits are unused (so we can use that for our own chosen stuff), and the next 24 bits are the page and frame numbers. --> a total of 32 bits per entry
   - page table entry is defined as a data structure `pte_t` in `hardware.c`. It has the same mem layout as a hardware pagetable entry
   - if not enough space for bookkeeping, we can use a shadow page table.
