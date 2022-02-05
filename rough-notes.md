@@ -20,6 +20,8 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 
 - Missing `KernelStart`
 - for virtual addresses we have options: pointers, page numbers, indices into a regions page table **DECIDE ON A WAY TO REFER TO VIRTUAL ADDRESSES**
+  - lets do **indices**
+
 - no need to support bi-directional pipes
 - PCB: missing brk, space allocated for user stack (bruh what does that mean), a range of addresses? Should we do a start and end? => **WE MUST EDIT PCB TO ADD THESE**
 - change syscall handler names, make it different from lib wrapper. **IMUST CHANGE SYSCALL HANDLER NAMES**
@@ -86,6 +88,8 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 
     - ADD A TRACEPRINT "leaving KernelStart" at the end of `KernelStart`
 
+### 
+
 ## Notes
 
 ### Data Structures
@@ -97,12 +101,15 @@ The above, sketches and pseudocode, should be done in our real source-files as c
   - page table entry is defined as a data structure `pte_t` in `hardware.c`. It has the same mem layout as a hardware pagetable entry
   - if not enough space for bookkeeping, we can use a shadow page table.
 - process ID
-- PID of children
+- PID of children (array of integers)
+- number of children
 - a `UserContext` struct, provided by `hardware.h`
 - a `KernelContext` struct, provided by `hardware.h`
-- location of user heap, user text segment, user data segment (as *virtual address* *pointers* I guess?)
-- location of kernel heap, kernel text segment, kernel data segment (also as *virtual address pointers*?)
-- address space allocated to this process 
+- location of user heap, user text segment, user data segment , user stack(as *virtual address* *indices* into the region's page table, so region 1)
+- location of kernel heap, kernel text segment, kernel data segment, kernel stack (as *virtual address indices* into the region's page table, so region 0)
+- address space allocated to this process (base + displacement, i.e. the first address and the size of the address space)
+  - note: the address space var here may not be needed, but we'll keep for now.
+
 
 **Queues**
 
