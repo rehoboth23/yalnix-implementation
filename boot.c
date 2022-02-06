@@ -10,6 +10,29 @@
 #include "include/ylib.h"
 #include "include/yuser.h"
 
+enum {
+    DEFAULT_TRACE_LEVEL   =   1,
+    MAX_TRACE_LEVEL       =  10, // yo what is the max trace level am I blind
+    DEFAULT_TICK_INTERVAL =  400 // in ms !
+};
+
+
+// =================================
+//  yalnix-switch-configured values
+// =================================
+// TODO for all of these ^^: find out where we have to put these variables to cause actual change
+
+// tracing levels for kernel, hardware, and user
+int k_tracing_level = DEFAULT_TRACE_LEVEL;  // kernel tracing level
+int h_tracing_level = DEFAULT_TRACE_LEVEL;  // hardware tracing level
+int u_tracing_level = DEFAULT_TRACE_LEVEL;  // user tracing level
+
+// tracefile that traceprint writes to
+char* tracefile = TRACE;
+
+// tick interval of clock
+int tick_interval = DEFAULT_TICK_INTERVAL;
+
 
 
 /*
@@ -25,29 +48,174 @@
  */
 void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
+    int index = 0;
+
     // loop through cmd_args until null
+    while (cmd_args[index] != NULL) {
+    // == common yalnix options: == //
 
-        // == common yalnix options: == //
         // -x
+        if (strcmp(cmd_args[index],"-x") == 0) {
+            TracePrintf(0,"-x switch detected, but not implemented!\n");
+            // use the X window system support for terminals
+            // attached to Yalnix
 
-        //-lk
+            // we don't do until checkpoint 5
+            
+        }
 
-        //-lh
+        //-lk  --> TODO: handle case where argument after this switch is another switch/ some string
+        else if (strcmp(cmd_args[index],"-lk") == 0) {
+            TracePrintf(0,"-lk switch detected\n");
 
-        //-lu
+            // get level by incrementing index
+            index++;
+
+            // check if the next input is NULL
+            if (cmd_args[index] != NULL) {
+
+                int level = atoi(cmd_args[index]);
+
+                // make sure level is in range
+                if (level >= 0 && level <= MAX_TRACE_LEVEL) {
+
+                    // if valid, set tracing level of the kernel
+                    k_tracing_level = level;
+
+                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                
+            } else TracePrintf(0,"Error, expected level after -lk switch\n");
+        }
+
+        //-lh  --> TODO: handle case where argument after this switch is another switch/ some string
+        else if (strcmp(cmd_args[index],"-lh") == 0) {
+            TracePrintf(0,"-lh switch detected\n");
+
+            // get level by incrementing index
+            index++;
+
+            // check if the next input is NULL
+            if (cmd_args[index] != NULL) {
+
+                int level = atoi(cmd_args[index]);
+
+                // make sure level is in range
+                if (level >= 0 && level <= MAX_TRACE_LEVEL) {
+
+                    // if valid, set tracing level of the hardware
+                    h_tracing_level = level;
+
+
+                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                
+            } else TracePrintf(0,"Error, expected level after -lh switch\n");
+        }
+
+        //-lu  --> TODO: handle case where argument after this switch is another switch/ some string
+        else if (strcmp(cmd_args[index],"-lu") == 0) {
+            TracePrintf(0,"-lu switch detected\n");
+
+            // get level by incrementing index
+            index++;
+
+            // check if the next input is NULL
+            if (cmd_args[index] != NULL) {
+
+                int level = atoi(cmd_args[index]);
+
+                // make sure level is in range
+                if (level >= 0 && level <= MAX_TRACE_LEVEL) {
+
+                    // if valid, set tracing level of the user
+                    u_tracing_level = level;
+
+
+                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                
+            } else TracePrintf(0,"Error, expected level after -lu switch\n");
+        }
 
         //-W
+        else if (strcmp(cmd_args[index],"-W") == 0) {
+            TracePrintf(0,"-W switch detected\n");
 
-        // == esoteric yalnix options == //
+            // dump core if hardware helper encounters issue
+            helper_maybort("TracePrintf");
+            // TODO: CHECK IF THIS ^^ IS CORRECT
+        }
+
+    // == esoteric yalnix options == //
+
         // -t tracefile
+        else if (strcmp(cmd_args[index],"-t") == 0) {
+            TracePrintf(0,"-t switch detected\n");
+
+            // get tracefile by incrementing index
+            index++;
+
+            // check if next input is valid
+            if (cmd_args[index] != NULL) {
+                
+                // send traceprints to tracefile instead of TRACE
+                tracefile = cmd_args[index];
+
+            } else TracePrintf(0,"Error, expected traceprint after -t switch\n");
+        }
 
         // -C NNN
+        else if (strcmp(cmd_args[index],"-C") == 0) {
+            TracePrintf(0,"-C switch detected\n");
 
-        // -In file
+            // get tick interval by incrementing index
+            index++;
+
+            if (cmd_args[index] != NULL) {
+
+                int new_tick_interval = atoi(cmd_args[index]);
+
+                // make sure tick interval is in range
+                if (new_tick_interval <= 0) {
+
+                    // if valid, set new clock tick interval
+                    tick_interval = new_tick_interval;
+
+
+                } else TracePrintf(0,"Error, invalid tick interval, we don't accept %d\n",new_tick_interval);
+                
+            } else TracePrintf(0,"Error, expected tick interval after -C switch\n");
+
+
+        }
         
-        // -On file
+        // -In file <-- TODO
+            // check if first char of arg is -I
+            // check that integer next to it is valid
+            // check existence of file
 
+            // if all good, feed terminal n with data from file
+            // as if it were typed there
+        
+        // -On file <-- TODO
+            // check if first char of arg is -O
+            // check that integer next to it is valid
+            // check existence of file
+
+            // if all good, feed output of terminal n to 
+            // filename TTYLOG.n, or change that to file
+
+        // TODO: or if there is a valid string, then it's the initial process
+            // I think we only do ^ this condition ^ for index == 0
+
+        // after all that, increment index
+        index++;
+    }
+    
     // if there were no arguments, look for an executable called init and run that
+    if (index == 0) {
+        // TODO: run the executable called init
+
+        // question: can we use fork and exec to run init
+    }
 
     // get num_of_frame (pmem_size / PAGESIZE)
         // pmem_size is an arg, PAGESIZE is in hardware.h
