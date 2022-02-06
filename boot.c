@@ -13,7 +13,9 @@
 enum {
     DEFAULT_TRACE_LEVEL   =   1,
     MAX_TRACE_LEVEL       =  10, // yo what is the max trace level am I blind
-    DEFAULT_TICK_INTERVAL =  400 // in ms !
+    DEFAULT_TICK_INTERVAL =  400, // in ms !
+    PAGE_FREE             =   1,
+    PAGE_NOT_FREE         =   0
 };
 
 
@@ -47,6 +49,10 @@ int tick_interval = DEFAULT_TICK_INTERVAL;
  * 
  */
 void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
+
+// ====================================== //
+//   HANDLING SWITCHES IN CMDLINE INPUT 
+// ====================================== //
 
     int index = 0;
 
@@ -217,43 +223,121 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         // question: can we use fork and exec to run init
     }
 
+
+
+    
+    if (pmem_size <= 0) {
+        TracePrintf(0,"Error! inputted pmem_size (%d) is negative or 0!\n",pmem_size);
+    }
+
     // get num_of_frame (pmem_size / PAGESIZE)
         // pmem_size is an arg, PAGESIZE is in hardware.h
         // they're both in bytes
-    if (pmem_size <= 0) {
-        // ERROR
-    }
-
+    // number of frames == number of pages
     int num_of_frames = pmem_size / PAGESIZE
     
     // initialize bit vector, an array of integers of size num_of_frame
     int bit_vector[num_of_frames] = {0};
 
-    //==initialize region 0's page table==
+// ======================
+//   INITIALIZE REGION0
+// ======================
 
-        // virtual memory base address of page table
-    unsigned int pt_vmem_base = ReadRegister(REG_PTRB0);
+    // number of kernel pagetable entires
+    int k_page_table_entries = VMEM_0_SIZE / PAGESIZE;
 
-        // num of entries in page table for virtual memory
-    unsigned int pt_num_entries = ReadRegister(REG_PLTR0);
+    // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entires
+    if (k_page_table_entries < MAX_PT_LEN) {
+        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)",k_page_table_entries,MAX_PT_LEN);
+    }
 
+    // define page table
+    struct pte_t k_page_table[k_page_table_entries];
+
+    // tell hardware where Region0's page table, (virtual memory base address of page_table)
+    WriteRegiter(REG_PTRB0,&k_page_table);
+
+    // tell hardware the number of pages in Region0's page table
+    WriteRegister(REG_PTLR0,k_page_table_entries);
+
+    // TODO: find out how "build process provides" us with this
     void *_kernel_data_start; // lowest addr in kernel data
-    void *_kernel_data_end; // lpwest unused address of kernel data
+    void *_kernel_data_end; // lowest unused address of kernel data,
     void *_kernel_orig_brk; // address of kernel brk
+
     VMEM_0_BASE // bottom address of vmem
     PMEM_BASE // bottom address of pmem
 
-    // find permissions for kernel data, heap, and text, and adjust page tables differently
+    // TODO find permissions for kernel data, heap, and text, and adjust page tables differently
 
-    // HOW DO WE DO KERNEL STACK
-    KERNEL_STACK_MAXSIZE
-    KERNEL_STACK_BASE
-    KERNEL_STACK_LIMIT // 
+    // from 3.5.3
+    KERNEL_STACK_MAXSIZE // fixed max size
+    KERNEL_STACK_BASE // bottom (lower address) of stack
+    KERNEL_STACK_LIMIT // first byte beyond stack (above region 0's vm)
 
-    // for each frame that fits between kernel_base and kernel_data_start
-        // allocate a pte from 0 to i
     
-    // for each frame that fits between kernel_data_base to kernel_dat_end
+    // lowest address in a given page (we'll use in our loop)
+    void *page_lowest_addr;
+    // first invalid addr above a given page (we'll use in our loop)
+    void *page_highest_addr;
+
+    int index; // indexing through each page table entry
+    for (index = 0;index < k_page_table_entries; index++) {
+        
+        // initialize current page
+        page_lowest_addr = VMEM_0_BASE + index * PAGESIZE
+        page_highest_addr = page_lowest_addr + PAGESIZE;
+        
+        // if the page_highest_addr leess than kernel_data_start
+        if (page_highest_addr < kernel_data_start) {
+
+            // TODO create pte with .text permissions
+                    
+            // update bitvector
+            bit_vector[index] = PAGE_NOT_FREE;
+        }
+            
+        // else if the page_lowest_addr above or equal to kernel_data_start 
+        // and page_highest_addr less than kernel_data_end
+        else if ((page_lowest_addr >= kernel_data_start) && (page_highest_addr < kernel_data_end)) {
+
+            // TODO create pte with .data permissions
+
+            // update bitvector
+            bit_vector[index] = PAGE_NOT_FREE;
+        }
+
+        // else if the page_lowest_addr above or equal to kernel_data_end
+        // and page_highest_addr less than kernel_orig_brk
+        else if ((page_lowest_addr >= kernel_data_end) && (page_highest_addr < _kernel_orig_brk)) {
+            
+            // TODO create pte with .heap permissions
+
+            // update bit vector
+            bit_vector[index] = PAGE_NOT_FREE;
+        }
+            
+        // else if the page_lowest_addr above or equal to kernel_stack_base
+        else if ((page_lowest_addr >= KERNEL_STACK_BASE) && (page_highest_addr < KERNEL_STACK_LIMIT))
+
+            // TODO create pte with stack permissions
+
+            // update bit vector
+            bit_vector[index] = PAGE_NOT_FREE
+
+        // otherwise
+        else {
+
+            // TODO create an invalid page entry
+
+            // update bit vector
+            bit_vector[index] = PAGE_FREE;
+        }
+            
+
+    }
+   
+
 
     //==initialize region 1's page table==
 

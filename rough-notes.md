@@ -106,6 +106,7 @@ The above, sketches and pseudocode, should be done in our real source-files as c
   - `atoi` returns 0 on error, but our level being 0 is valid, so atoi(input) returning 0 might be correct. --> bruh
 
 - implement ./yalnix <somefile> , basically load a different file as an initial process
+- find permissions of each segment for both user and kernel
 
 ## Notes
 
@@ -413,11 +414,8 @@ change that to file.
   - put at the start and end of each function!!
 - we are given a magical function that can force a context switch from a process to another, while inside the kernel, then later resume the execution of the blocked kernel-mode process
 - flush the TLB at every context switch so we don't get incorrect hits
+- if we change kernel brk before enabling virtual memory, we musts update the page table!!
 
 ## Questions
-
-Where in the world do we put our source code? in a github repo in vbs?
-
-In syscall/trap handler, how do we access our PCB when manual says we're given only `UserContext`
 
 it says on chapter 4 that processes call `KernelContextSwitch`, where does it do that
