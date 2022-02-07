@@ -10,7 +10,7 @@
 #include "include/ylib.h"
 #include "include/yuser.h"
 
-
+#include "process.h"
 
 /*
  * KernelStart
@@ -56,6 +56,10 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         // ERROR
     }
 
+    // init a new process for boot
+    
+
+
     int num_of_frames = pmem_size / PAGESIZE
     
     // initialize bit vector, an array of integers of size num_of_frame
@@ -67,7 +71,36 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     unsigned int pt_vmem_base = ReadRegister(REG_PTRB0);
 
         // num of entries in page table for virtual memory
-    unsigned int pt_num_entries = ReadRegister(REG_PLTR0);
+    //unsigned int pt_num_entries = ReadRegister(REG_PLTR0);
+
+    pcb_t *boot_process = init_process();
+
+    boot_process->pid = 0; // find this value somewhere
+    boot_process->parent = NULL;
+
+    boot_process->user_context = uctxt;
+    boot_process->kernel_context = NULL; // null for now. INIT here?
+
+    int kernal_page_table_size = VMEM_0_SIZE / PAGESIZE;
+    int userland_page_table_size = VMEM_1_SIZE / PAGESIZE;
+
+    pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
+    pte_t *region1_pagetable[userland_page_table_size];
+
+    boot_process->user_page_table = region0_pagetable;
+    boot_process->kernal_page_table = region0_pagetable;
+
+    //=== leave user alone for now. but can go here ===//
+
+    
+    
+    for (int i = 0; i < kernal_page_table_size; i++) {
+        if (i = 0) {
+            boot_process->user_text_pt_index = 0; // because this is the bottom;
+        }
+
+        if 
+    }
 
     void *_kernel_data_start; // lowest addr in kernel data
     void *_kernel_data_end; // lpwest unused address of kernel data
