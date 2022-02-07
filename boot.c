@@ -11,11 +11,19 @@
 #include "include/yuser.h"
 
 enum {
-    DEFAULT_TRACE_LEVEL   =   1,
-    MAX_TRACE_LEVEL       =  10, // yo what is the max trace level am I blind
+    // default values
+    DEFAULT_TRACE_LEVEL   =    1,
+    MAX_TRACE_LEVEL       =   10, // yo what is the max trace level am I blind
     DEFAULT_TICK_INTERVAL =  400, // in ms !
-    PAGE_FREE             =   1,
-    PAGE_NOT_FREE         =   0
+    PAGE_FREE             =    1,
+    PAGE_NOT_FREE         =    0,
+
+
+    // permissions for page table
+    R_NO_W_X              =    5,      // read allowed, no write, exec allowed
+    NO_R_NO_W_NO_X        =    0,      // no read, no write, no exec
+    R_W_X                 =    7,      // read allowed, write allowed, exec allowed
+    R_W_NO_X              =    6      // read allowed, write allowed, no exec
 };
 
 
@@ -40,7 +48,9 @@ int tick_interval = DEFAULT_TICK_INTERVAL;
 /*
  * KernelStart
  *
- * initializes our OS and its first process (ADD BETTER DESCRIPTION HERE)
+ * initializes our OS: page tables for region0 and region1
+ * accepts configurations through cmdline switches, and starts our first
+ * process
  *
  * takes in
  *  - cmd_args[], arguments from cmdline
@@ -51,7 +61,7 @@ int tick_interval = DEFAULT_TICK_INTERVAL;
 void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
 // ====================================== //
-//   HANDLING SWITCHES IN CMDLINE INPUT 
+//   HANDLING SWITCHES IN CMDLINE INPUT   //
 // ====================================== //
 
     int index = 0;
@@ -234,25 +244,28 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         // pmem_size is an arg, PAGESIZE is in hardware.h
         // they're both in bytes
     // number of frames == number of pages
-    int num_of_frames = pmem_size / PAGESIZE
+    int num_of_frames = pmem_size / PAGESIZE;
     
     // initialize bit vector, an array of integers of size num_of_frame
-    int bit_vector[num_of_frames] = {0};
+    int bit_vector[num_of_frames] = {1};
 
-// ======================
-//   INITIALIZE REGION0
-// ======================
+// ====================== //
+//   INITIALIZE REGION0   //
+// ====================== //
 
     // number of kernel pagetable entires
     int k_page_table_entries = VMEM_0_SIZE / PAGESIZE;
 
-    // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entires
+    // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entries
     if (k_page_table_entries < MAX_PT_LEN) {
         TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)",k_page_table_entries,MAX_PT_LEN);
     }
 
-    // define page table
+    // define page table, an array of pte's
     struct pte_t k_page_table[k_page_table_entries];
+    if (k_page_table_entries = malloc(sizeof(pte_t * k_page_table_entries)) == NULL) {
+        TracePrintf(0,"Malloc for kernel page table failed!\n");
+    }
 
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
     WriteRegiter(REG_PTRB0,&k_page_table);
@@ -260,20 +273,20 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // tell hardware the number of pages in Region0's page table
     WriteRegister(REG_PTLR0,k_page_table_entries);
 
-    // TODO: find out how "build process provides" us with this
-    void *_kernel_data_start; // lowest addr in kernel data
-    void *_kernel_data_end; // lowest unused address of kernel data,
-    void *_kernel_orig_brk; // address of kernel brk
+// helpful globals/constants
 
-    VMEM_0_BASE // bottom address of vmem
-    PMEM_BASE // bottom address of pmem
+    // question: how does "build process provide" us with these 3 variables
+    // void *_kernel_data_start; // lowest addr in kernel data
+    // void *_kernel_data_end; // lowest unused address of kernel data,
+    // void *_kernel_orig_brk; // address of kernel brk
 
-    // TODO find permissions for kernel data, heap, and text, and adjust page tables differently
+    // VMEM_0_BASE // bottom address of vmem
+    // PMEM_BASE // bottom address of pmem
 
     // from 3.5.3
-    KERNEL_STACK_MAXSIZE // fixed max size
-    KERNEL_STACK_BASE // bottom (lower address) of stack
-    KERNEL_STACK_LIMIT // first byte beyond stack (above region 0's vm)
+    // KERNEL_STACK_MAXSIZE // fixed max size
+    // KERNEL_STACK_BASE // bottom (lower address) of stack
+    // KERNEL_STACK_LIMIT // first byte beyond stack (above region 0's vm)
 
     
     // lowest address in a given page (we'll use in our loop)
@@ -288,39 +301,63 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         page_lowest_addr = VMEM_0_BASE + index * PAGESIZE
         page_highest_addr = page_lowest_addr + PAGESIZE;
         
-        // if the page_highest_addr leess than kernel_data_start
-        if (page_highest_addr < kernel_data_start) {
+    // .text
+        // if the page_highest_addr less than or eql to kernel_data_start
+        if (page_highest_addr <= kernel_data_start) {
 
             // TODO create pte with .text permissions
-                    
+            struct pte_t entry;
+            entry.valid = 1;
+            entry.prot = R_W_X; // CHECK: guessing that we can read, write and execute our code hahaha
+            entry.pfn = index;
+            k_page_table_entries[index] = entry;
+
             // update bitvector
             bit_vector[index] = PAGE_NOT_FREE;
         }
-            
+        
+    // .data
         // else if the page_lowest_addr above or equal to kernel_data_start 
         // and page_highest_addr less than kernel_data_end
         else if ((page_lowest_addr >= kernel_data_start) && (page_highest_addr < kernel_data_end)) {
 
             // TODO create pte with .data permissions
+            struct pte_t entry;
+            entry.valid = 1;
+            entry.prot = R_W_NO_X; // CHECK: guessing that we can read, write but not execute our globals
+            entry.pfn = index;
+            k_page_table_entries[index] = entry;
 
             // update bitvector
             bit_vector[index] = PAGE_NOT_FREE;
         }
 
+    // heap
         // else if the page_lowest_addr above or equal to kernel_data_end
         // and page_highest_addr less than kernel_orig_brk
         else if ((page_lowest_addr >= kernel_data_end) && (page_highest_addr < _kernel_orig_brk)) {
             
             // TODO create pte with .heap permissions
+            struct pte_t entry;
+            entry.valid = 1;
+            entry.prot = R_W_NO_X; // CHECK: guessing that we can read, write but not execute our heap
+            entry.pfn = index;
+            k_page_table_entries[index] = entry;
 
             // update bit vector
             bit_vector[index] = PAGE_NOT_FREE;
         }
-            
+    
+    // stack
         // else if the page_lowest_addr above or equal to kernel_stack_base
         else if ((page_lowest_addr >= KERNEL_STACK_BASE) && (page_highest_addr < KERNEL_STACK_LIMIT))
 
             // TODO create pte with stack permissions
+            struct pte_t entry;
+            entry.valid = 1;
+            entry.prot = R_W_NO_X; // CHECK: guessing that we can read, write but not execute our stack
+            entry.pfn = index;
+            k_page_table_entries[index] = entry;
 
             // update bit vector
             bit_vector[index] = PAGE_NOT_FREE
@@ -329,6 +366,9 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         else {
 
             // TODO create an invalid page entry
+            struct pte_t entry;
+            entry.valid = 0;
+            k_page_table_entries[index] = entry;
 
             // update bit vector
             bit_vector[index] = PAGE_FREE;
@@ -338,8 +378,29 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
    
 
+// ====================== //
+//   INITIALIZE REGION1   //
+// ====================== //
 
-    //==initialize region 1's page table==
+    // number of user pagetable entires
+    int u_page_table_entries = VMEM_1_SIZE / PAGESIZE;
+
+    // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entries
+    if (u_page_table_entries < MAX_PT_LEN) {
+        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)",u_page_table_entries,MAX_PT_LEN);
+    }
+
+    // define page table, an array of pte's
+    struct pte_t u_page_table[u_page_table_entries];
+    if (u_page_table_entries = malloc(sizeof(pte_t * u_page_table_entries)) == NULL) {
+        TracePrintf(0,"Malloc for kernel page table failed!\n");
+    }
+
+    // tell hardware where Region1's page table, (virtual memory base address of page_table)
+    WriteRegiter(REG_PTRB1,&u_page_table);
+
+    // tell hardware the number of pages in Region1's page table
+    WriteRegister(REG_PTLR1,u_page_table_entries);
 
     VMEM_1_BASE == VMEM_0_LIMIT
     VMEM_1_LIMIT // first byte above the region
