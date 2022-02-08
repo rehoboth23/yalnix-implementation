@@ -5,44 +5,51 @@
  *  also holds the functions for manipulating the process
 */
 
-#include "hardware.h"
+
 #include "process.h"
 
-typedef struct PCB { 
-    pte_t *page_table;
-    u_long pid;
-    unsigned long child_pids[];            // array of child pids
-    int num_children;               // number of children
-    pcb_t* parent;                  // pointer to parent
+// typedef struct PCB { 
+//     u_long pid;
+//     unsigned long child_pids[];            // array of child pids
+//     int num_children;               // number of children
+//     pcb_t* parent;                  // pointer to parent
 
-    UserContext *user_context;      // hardware.h provides UserContext
-    KernelContext *kernel_context;  // hardware.h provides KernelContext
+//     UserContext *user_context;      // hardware.h provides UserContext
+//     KernelContext *kernel_context;  // hardware.h provides KernelContext
 
-    // user address space info, this is the FIRST ADDRESS of each segment
-    void *user_heap_addr;           
-    void *user_text_segment_addr;
-    void *user_data_segment;
+//     // user address space info, this is the FIRST ADDRESS of each segment
+//     pte_t **user_page_table; // region 1
 
-    // kernel address space info, this is the FIRST ADDRESS of each segment
-    void *kernel_heap_addr;
-    void *kernel_text_segment_addr;
-    void *kernel_data_segment;
+//     /*void *user_heap_addr;           
+//     void *user_text_segment_addr;
+//     void *user_data_segment; */
 
-    int status                      // identifies whether process is alive or dead
+//     int user_stack_pt_index;
+//     int user_heap_pt_index;
+//     int user_text_pt_index;
+//     int user_data_pt_index;
 
-} pcb_t;
+//     // kernel address space info, this is the FIRST ADDRESS of each segment
+//     pte_t **kernel_page_table;
 
-int process_init(pcb_t **processBlock) {
-    // allocate memory for pcb at inner pointer of processBlock
-    // allocated memory for variables, give error if fail
+//     /*void *kernel_heap_addr;
+//     void *kernel_text_segment_addr;
+//     void *kernel_data_segment; */
+//     int kernal_stack_pt_index;
+//     int kernal_heap_pt_index;
+//     int kernal_text_pt_index;
+//     int kernal_data_pt_index;
 
-    // look at current processes(?) and generate pid
+//     int status;                      // identifies whether process is alive or dead
 
-    // initialize page table
-    // look at memory and assign addresses
+// } pcb_t; */
 
-    // inherit kernel heap, txt, data from other process
+pcb_t *init_process() {
+    pcb_t *process = malloc(sizeof(pcb_t));
 
-    // initialize usercontext and kernel context (check hardware.h)
-    // return 0 if success or {x, y|x< 0, y > 0} if fail
+    if (process != NULL) {
+        return process;
+    }
+
+    return NULL;
 }

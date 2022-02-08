@@ -48,7 +48,7 @@ char* tracefile = TRACE;
 // tick interval of clock
 int tick_interval = DEFAULT_TICK_INTERVAL;
 
-
+#include "process.h"
 
 /*
  * KernelStart
@@ -111,7 +111,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", i);
                     }
                 }
 
@@ -143,7 +143,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", i);
                     }
                 }
 
@@ -176,7 +176,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", i);
                     }
                 }
 
@@ -282,10 +282,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         TracePrintf(0,"Error! inputted pmem_size (%d) is negative or 0!\n", pmem_size);
     }
 
-    // get num_of_frame (pmem_size / PAGESIZE)
-        // pmem_size is an arg, PAGESIZE is in hardware.h
-        // they're both in bytes
-    // number of frames == number of pages
+    // init a new process for boot
+
     int num_of_frames = pmem_size / PAGESIZE;
     
     // initialize bit vector, an array of integers of size num_of_frame
@@ -303,15 +301,40 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // number of kernel pagetable entires
     int k_page_table_entries = VMEM_0_SIZE / PAGESIZE;
 
-    // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entries
-    if (k_page_table_entries < MAX_PT_LEN) {
-        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)", k_page_table_entries,MAX_PT_LEN);
-    }
+        // num of entries in page table for virtual memory
+    //unsigned int pt_num_entries = ReadRegister(REG_PLTR0);
 
-    // define page table, an array of pte's
-    struct pte_t k_page_table[k_page_table_entries];
-    if (k_page_table_entries = malloc(sizeof(pte_t * k_page_table_entries)) == NULL) {
-        TracePrintf(0,"Malloc for kernel page table failed!\n");
+    pcb_t *boot_process = init_process();
+
+    boot_process->pid = 0; // find this value somewhere
+    boot_process->parent = NULL;
+
+    boot_process->user_context = uctxt;
+    boot_process->kernel_context = NULL; // null for now. INIT here?
+
+    int kernal_page_table_size = VMEM_0_SIZE / PAGESIZE;
+    int userland_page_table_size = VMEM_1_SIZE / PAGESIZE;
+
+    pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
+    pte_t *region1_pagetable[userland_page_table_size];
+
+    boot_process->user_page_table = region1_pagetable;
+    boot_process->kernal_page_table = region0_pagetable;
+
+    //=== leave user alone for now. but can go here ===//
+
+    
+    // interate through each page table entry to index's
+    for (int i = 0; i < kernal_page_table_size; i++) {
+
+        //void *lower_addr = VMEM_0_BASE;
+        //void *lower_addr = 
+
+        if (i = 0) {
+            boot_process->user_text_pt_index = 0; // because this is the bottom;
+        }
+
+        if 
     }
 
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
