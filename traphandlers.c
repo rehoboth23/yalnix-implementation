@@ -258,6 +258,7 @@ int GetPid(void) {
     // access running process via queue and return its pid
 }
 int Brk(void *addr) {
+    // NOTE: refer to kernelsetbrk
     // check global running queue
     // give error if its empty
 
@@ -355,10 +356,12 @@ int PipeWrite(int pipe_id, void *buf, int len) {
 
     // if available space >= len
         // put len data from buf into pipe
+        // signal any readers
         // return len
     
     // else if available space < len
         // put available space data from buf into pipe
+        // signal any readers
         // return available space
 
     // return error if we get here
