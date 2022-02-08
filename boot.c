@@ -80,6 +80,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
     InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
     InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
+    WriteRegister(REG_VECTOR_BASE, InterruptVectorTable);
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 
     // loop through cmd_args until null
@@ -111,7 +112,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", i);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %c\n",  cmd_args[index][i]);
                     }
                 }
 
@@ -143,7 +144,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", i);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %c\n", cmd_args[index][i]);
                     }
                 }
 
@@ -176,7 +177,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", i);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %c\n",  cmd_args[index][i]);
                     }
                 }
 
