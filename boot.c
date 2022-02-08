@@ -11,7 +11,8 @@
 #include "include/yuser.h"
 #include "interrupt.h"
 
-extern handler_func_t InterruptVectorTable[TRAP_VECTOR_SIZE];
+handler_func_t InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
+
 enum {
     // default values
     DEFAULT_TRACE_LEVEL   =    1,
@@ -70,6 +71,17 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     int index = 0;
 
+    /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
+    InterruptVectorTable[TRAP_KERNEL] = trap_kernel_handler;
+    InterruptVectorTable[TRAP_CLOCK] = trap_clock_handler;
+    InterruptVectorTable[TRAP_ILLEGAL] = trap_illegal_handler;
+    InterruptVectorTable[TRAP_MEMORY] = trap_memory_handler;
+    InterruptVectorTable[TRAP_MATH] = trap_math_handler;
+    InterruptVectorTable[TRAP_TTY_RECEIVE] = trap_tty_receive_handler;
+    InterruptVectorTable[TRAP_TTY_TRANSMIT] = trap_tty_transmit_handler;
+    InterruptVectorTable[TRAP_DISK] = trap_disk_handler;
+    /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
+
     // loop through cmd_args until null
     while (cmd_args[index] != NULL) {
     // == common yalnix options: == //
@@ -95,11 +107,11 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             if (cmd_args[index] != NULL) {
                 
                 // check if level is digit
-                size_t length = sizeof(cmd_args[index]) - 1
+                size_t length = sizeof(cmd_args[index]) - 1;
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
                     }
                 }
 
@@ -111,7 +123,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                     // if valid, set tracing level of the kernel
                     k_tracing_level = level;
 
-                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
                 
             } else TracePrintf(0,"Error, expected level after -lk switch\n");
         }
@@ -127,11 +139,11 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             if (cmd_args[index] != NULL) {
                 
                 // check if level is digit
-                size_t length = sizeof(cmd_args[index]) - 1
+                size_t length = sizeof(cmd_args[index]) - 1;
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
                     }
                 }
 
@@ -144,7 +156,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                     h_tracing_level = level;
 
 
-                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
                 
             } else TracePrintf(0,"Error, expected level after -lh switch\n");
         }
@@ -160,11 +172,11 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             if (cmd_args[index] != NULL) {
                 
                 // check if level is digit
-                size_t length = sizeof(cmd_args[index]) - 1
+                size_t length = sizeof(cmd_args[index]) - 1;
                 int i;
                 for (i = 0; i<length; i++) {
                     if (!isdigit(cmd_args[index][i])) {
-                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
                     }
                 }
 
@@ -177,7 +189,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                     u_tracing_level = level;
 
 
-                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                } else TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n", level);
                 
             } else TracePrintf(0,"Error, expected level after -lu switch\n");
         }
@@ -227,7 +239,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
                     tick_interval = new_tick_interval;
 
 
-                } else TracePrintf(0,"Error, invalid tick interval, we don't accept %d\n",new_tick_interval);
+                } else TracePrintf(0,"Error, invalid tick interval, we don't accept %d\n", new_tick_interval);
                 
             } else TracePrintf(0,"Error, expected tick interval after -C switch\n");
 
@@ -267,7 +279,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
 
     if (pmem_size <= 0) {
-        TracePrintf(0,"Error! inputted pmem_size (%d) is negative or 0!\n",pmem_size);
+        TracePrintf(0,"Error! inputted pmem_size (%d) is negative or 0!\n", pmem_size);
     }
 
     // get num_of_frame (pmem_size / PAGESIZE)
@@ -277,7 +289,10 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     int num_of_frames = pmem_size / PAGESIZE;
     
     // initialize bit vector, an array of integers of size num_of_frame
-    int bit_vector[num_of_frames] = {PAGE_FREE}; // set to all available initially
+    int bit_vector[num_of_frames]; // set to all available initially
+    for (int fr_number = 0; fr_number < num_of_frames; fr_number++) {
+        bit_vector[fr_number] = PAGE_FREE;
+    }
 
 // ================================= //
 //   INITIALIZE REGION0 PAGE TABLE   //
@@ -290,7 +305,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entries
     if (k_page_table_entries < MAX_PT_LEN) {
-        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)",k_page_table_entries,MAX_PT_LEN);
+        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)", k_page_table_entries,MAX_PT_LEN);
     }
 
     // define page table, an array of pte's
@@ -300,7 +315,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
 
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
-    WriteRegiter(REG_PTRB0,&k_page_table);
+    WriteRegiter(REG_PTRB0, &k_page_table);
 
     // tell hardware the number of pages in Region0's page table
     WriteRegister(REG_PTLR0,k_page_table_entries);
@@ -338,7 +353,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     for (index = 0;index < k_page_table_entries; index++) {
         
         // initialize current page
-        page_lowest_addr = VMEM_0_BASE + index * PAGESIZE
+        page_lowest_addr = VMEM_0_BASE + index * PAGESIZE;
         page_highest_addr = page_lowest_addr + PAGESIZE;
         
     // .text
@@ -391,7 +406,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // stack
         // else if the page_lowest_addr above or equal to kernel_stack_base
         // and page_highest_addr less than stack limit
-        else if ((page_lowest_addr >= KERNEL_STACK_BASE) && (page_highest_addr < KERNEL_STACK_LIMIT))
+        else if ((page_lowest_addr >= KERNEL_STACK_BASE) && (page_highest_addr < KERNEL_STACK_LIMIT)) {
 
             // create pte with stack permissions
             struct pte_t entry;
@@ -401,7 +416,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             k_page_table_entries[index] = entry;
 
             // update bit vector
-            bit_vector[index] = PAGE_NOT_FREE
+            bit_vector[index] = PAGE_NOT_FREE;
+        }
 
         // otherwise
         else {
@@ -427,7 +443,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entries
     if (u_page_table_entries < MAX_PT_LEN) {
-        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)",u_page_table_entries,MAX_PT_LEN);
+        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)", u_page_table_entries,MAX_PT_LEN);
     }
 
     // define page table, an array of pte's
@@ -465,8 +481,47 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
             // update bit vector
             bit_vector[index] = PAGE_NOT_FREE
-            }
         }
     }
     TracePrintf(0,"DEBUG: Done initializing region1 page table\n");   
+}
+
+
+void trap_kernel_handler(void *code){
+    switch ((int) code) {
+         case YALNIX_FORK: 
+            TracePrintf(0, "kernel calling Fork()");
+            break;
+        case YALNIX_EXEC:
+            TracePrintf(0, "kernel calling Exec()");
+            break;
+        case YALNIX_EXIT:
+            TracePrintf(0, "kernel calling Exir()");
+            break;
+        case YALNIX_WAIT:
+            TracePrintf(0, "kernel calling Wait()");
+            break;
+        case YALNIX_GETPID:
+            TracePrintf(0, "kernel calling GetPid()");
+            break;
+        case YALNIX_BRK:
+            TracePrintf(0, "kernel calling Brk()");
+            break;
+        case YALNIX_DELAY:
+            TracePrintf(0, "kernel calling Delay()");
+            break;
+        case YALNIX_TTY_READ:
+            TracePrintf(0, "kernel calling TtyRead()");
+            break;
+        case YALNIX_TTY_WRITE:
+            TracePrintf(0, "kernel calling TtyWrite()");
+            break;
+        default:
+            TracePrintf(0, "Unknown code");
+            break;
+    }
+}
+
+void trap_clock_handler(void *code){
+    // swithc to new context ???
 }
