@@ -9,7 +9,9 @@
 #include "include/hardware.h"
 #include "include/ylib.h"
 #include "include/yuser.h"
+#include "interrupt.h"
 
+extern handler_func_t InterruptVectorTable[TRAP_VECTOR_SIZE];
 
 
 /*
