@@ -9,6 +9,7 @@
 
 #include "kernel.h"
 #include "pipe.h"
+#include "interrupt.h"
 
 // ********************************************************** 
 //                      Trap Handlers
@@ -19,7 +20,40 @@
  *
  * Handler in interrupt vector table for TRAP_KERNEL
  */
-void TrapKernelHandler(UserContext *user_context) {
+void TrapKernelHandler(void *ctx) {
+    UserContext *user_context = (UserContext *) ctx;
+    switch (user_context->code) {
+         case YALNIX_FORK: 
+            TracePrintf(0, "kernel calling Fork()");
+            break;
+        case YALNIX_EXEC:
+            TracePrintf(0, "kernel calling Exec()");
+            break;
+        case YALNIX_EXIT:
+            TracePrintf(0, "kernel calling Exir()");
+            break;
+        case YALNIX_WAIT:
+            TracePrintf(0, "kernel calling Wait()");
+            break;
+        case YALNIX_GETPID:
+            TracePrintf(0, "kernel calling GetPid()");
+            break;
+        case YALNIX_BRK:
+            TracePrintf(0, "kernel calling Brk()");
+            break;
+        case YALNIX_DELAY:
+            TracePrintf(0, "kernel calling Delay()");
+            break;
+        case YALNIX_TTY_READ:
+            TracePrintf(0, "kernel calling TtyRead()");
+            break;
+        case YALNIX_TTY_WRITE:
+            TracePrintf(0, "kernel calling TtyWrite()");
+            break;
+        default:
+            TracePrintf(0, "Unknown code");
+            break;
+    }
     // check code of user_context
 
     // depending on code, call the corresponding function below
@@ -35,7 +69,7 @@ void TrapKernelHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_CLOCK
  *  
  */
-void TrapClockHandler() {
+void TrapClockHandler(void *ctx) {
     // check ready queue, if there are other processes
     // call context switch on them
 
@@ -48,7 +82,8 @@ void TrapClockHandler() {
  * Handler in interrupt vector table for TRAP_ILLEGAL
  *  
  */
-void TrapIllegalHandler(UserContext *user_context) {
+void TrapIllegalHandler(void *ctx) {
+    UserContext *user_context = (UserContext *) ctx;
     // same as TrapMathHandler
 }
 
@@ -58,7 +93,8 @@ void TrapIllegalHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_MEMORY
  *  
  */
-void TrapMemoryHandler(UserContext *user_context) {
+void TrapMemoryHandler(void *ctx) {
+    UserContext *user_context = (UserContext *) ctx;
     // make sure user context is valid
     
     // chcek if this is an implicit request
@@ -76,7 +112,8 @@ void TrapMemoryHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_MATH
  *  
  */
-void TrapMathHandler(UserContext *user_context) {
+void TrapMathHandler(void *ctx) {
+    UserContext *user_context = (UserContext *) ctx;
     // get current running process from running queue
     // check that it's valid
 
@@ -90,7 +127,8 @@ void TrapMathHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_TTY_RECEIVE
  *  
  */
-void TrapReceiveHandler(UserContext *user_context) {
+void TrapTTYReceiveHandler(void *ctx) {
+    UserContext *user_context = (UserContext *) ctx;
     // check that usercontext is valid
 
     // code of usercontext is the terminal has a new line
@@ -98,14 +136,15 @@ void TrapReceiveHandler(UserContext *user_context) {
     
     // buffer input line for more user TtyRead syscalls if necessary
     
-
+}
 /*
  * TrapTransmitHandler
  *
  * Handler in interrupt vector table for TRAP_TTY_TRANSMIT
  *  
  */
-void TrapTransmitHandler(UserContext *user_context) {
+void TrapTTYTransmitHandler(void *ctx) {
+    UserContext *user_context = (UserContext *) ctx;
     // check that usercontext is valid
 
     // code field of usercontext is the terminal that completed
@@ -122,7 +161,8 @@ void TrapTransmitHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_DISK
  *  
  */
-void TrapDiskHandler(UserContext *user_context) {
+void TrapDiskHandler(void *ctx) {
+    UserContext *user_context = (UserContext *) ctx;
     // no need to worry about, this is extra functionality
     // to do with disk
 }
@@ -400,4 +440,3 @@ int Reclaim(int id) {
 
     // return success or not.
 }
- 

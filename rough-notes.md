@@ -54,7 +54,7 @@ The above, sketches and pseudocode, should be done in our real source-files as c
     - `addr` is similar to what's used in calls to `brk`: it's the lowest location not used in our kernel
     - we need a flag in our kernel that checks if we have enable virtual memory, before it's enabled, ``SetKernelBrk` only needs to check if and by how kernel `brk` is being raised beyond `_kernel_orig_brk`, after VM is enabled, then our `SetKernelBrk` acts like the standard `Brk`. i.e. This function has two behaviors depending on whether or not virtual memory is enabled
       - the flag is provided by hardware, check 2.2.6, we call `WriteRegister(REG_VM_ENABLE, 1)` to set it,and I assume there's a ReadRegister function for checking.
-    - then, enable virtual memory, but note, if we already raised our kernel's brk since we've built the Region 0 page table, we need to adjust the page table before turning the VM on -- otherwise shit could get ugly
+    - when VM is enabled, if we already raised our kernel's brk since we've built the Region 0 page table, we need to adjust the page table before turning the VM on -- otherwise shit could get ugly
 
 - Traps
 
@@ -68,7 +68,7 @@ The above, sketches and pseudocode, should be done in our real source-files as c
   - create an `idlePCB`, this is our kernel, as its first process, keep track of:
 
     - region 1 page table
-    - kernel stack table
+    - kernel stack frames
     - UserContext (`uctxt` from `KernelStart`)
     - pid (from `helper_new_pid()`)
 
@@ -102,6 +102,11 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 - write `boot.c`
   - includes yUser, yhardware, ylib and ykernel
   - contains `KernelStart`
+- for the tracing_level-setting switches, we don't yet handle the case where no level is inputted, or if the level inputted is some invalid string. `atoi` should return some sort of error.
+  - `atoi` returns 0 on error, but our level being 0 is valid, so atoi(input) returning 0 might be correct. --> bruh
+
+- implement ./yalnix <somefile> , basically load a different file as an initial process
+- find permissions of each segment for both user and kernel
 
 ## Notes
 
@@ -409,11 +414,8 @@ change that to file.
   - put at the start and end of each function!!
 - we are given a magical function that can force a context switch from a process to another, while inside the kernel, then later resume the execution of the blocked kernel-mode process
 - flush the TLB at every context switch so we don't get incorrect hits
+- if we change kernel brk before enabling virtual memory, we musts update the page table!!
 
 ## Questions
-
-Where in the world do we put our source code? in a github repo in vbs?
-
-In syscall/trap handler, how do we access our PCB when manual says we're given only `UserContext`
 
 it says on chapter 4 that processes call `KernelContextSwitch`, where does it do that
