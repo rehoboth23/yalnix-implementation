@@ -80,7 +80,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             
         }
 
-        //-lk  --> TODO: handle case where argument after this switch is another switch/ some string
+        //-lk 
         else if (strcmp(cmd_args[index],"-lk") == 0) {
             TracePrintf(0,"-lk switch detected\n");
 
@@ -89,6 +89,15 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
             // check if the next input is NULL
             if (cmd_args[index] != NULL) {
+                
+                // check if level is digit
+                size_t length = sizeof(cmd_args[index]) - 1
+                int i;
+                for (i = 0; i<length; i++) {
+                    if (!isdigit(cmd_args[index][i])) {
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                    }
+                }
 
                 int level = atoi(cmd_args[index]);
 
@@ -103,7 +112,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             } else TracePrintf(0,"Error, expected level after -lk switch\n");
         }
 
-        //-lh  --> TODO: handle case where argument after this switch is another switch/ some string
+        //-lh  
         else if (strcmp(cmd_args[index],"-lh") == 0) {
             TracePrintf(0,"-lh switch detected\n");
 
@@ -112,6 +121,15 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
             // check if the next input is NULL
             if (cmd_args[index] != NULL) {
+                
+                // check if level is digit
+                size_t length = sizeof(cmd_args[index]) - 1
+                int i;
+                for (i = 0; i<length; i++) {
+                    if (!isdigit(cmd_args[index][i])) {
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                    }
+                }
 
                 int level = atoi(cmd_args[index]);
 
@@ -127,7 +145,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             } else TracePrintf(0,"Error, expected level after -lh switch\n");
         }
 
-        //-lu  --> TODO: handle case where argument after this switch is another switch/ some string
+        //-lu 
         else if (strcmp(cmd_args[index],"-lu") == 0) {
             TracePrintf(0,"-lu switch detected\n");
 
@@ -136,6 +154,15 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
             // check if the next input is NULL
             if (cmd_args[index] != NULL) {
+                
+                // check if level is digit
+                size_t length = sizeof(cmd_args[index]) - 1
+                int i;
+                for (i = 0; i<length; i++) {
+                    if (!isdigit(cmd_args[index][i])) {
+                        TracePrintf(0,"Error, invalid tracing level, we don't accept %d\n",level);
+                    }
+                }
 
                 int level = atoi(cmd_args[index]);
 
@@ -203,7 +230,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
         }
         
-        // -In file <-- TODO
+        // -In file 
             // check if first char of arg is -I
             // check that integer next to it is valid
             // check existence of file
@@ -211,7 +238,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             // if all good, feed terminal n with data from file
             // as if it were typed there
         
-        // -On file <-- TODO
+        // -On file 
             // check if first char of arg is -O
             // check that integer next to it is valid
             // check existence of file
@@ -282,6 +309,10 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     // VMEM_0_BASE // bottom address of vmem
     // PMEM_BASE // bottom address of pmem
+    // VMEM_1_BASE == VMEM_0_LIMIT
+    // VMEM_1_LIMIT // first byte above the region
+    // VMEM_1_SIZE
+    // VMEM_0_SIZE // size of virtual mem for region 0
 
     // from 3.5.3
     // KERNEL_STACK_MAXSIZE // fixed max size
@@ -308,7 +339,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             // TODO create pte with .text permissions
             struct pte_t entry;
             entry.valid = 1;
-            entry.prot = R_W_X; // CHECK: guessing that we can read, write and execute our code hahaha
+            entry.prot = R_NO_W_X; // CHECK: guessing that we can read, write and execute our code hahaha
             entry.pfn = index;
             k_page_table_entries[index] = entry;
 
@@ -402,10 +433,10 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // tell hardware the number of pages in Region1's page table
     WriteRegister(REG_PTLR1,u_page_table_entries);
 
-    VMEM_1_BASE == VMEM_0_LIMIT
-    VMEM_1_LIMIT // first byte above the region
-    VMEM_1_SIZE
-    VMEM_0_SIZE // size of virtual mem for region 0
+     // lowest address in a given page (we'll use in our loop)
+    void *page_lowest_addr;
+    // first invalid addr above a given page (we'll use in our loop)
+    void *page_highest_addr;
 
         
 }
