@@ -87,14 +87,18 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
     pte_t *region1_pagetable[userland_page_table_size];
 
-    boot_process->user_page_table = region0_pagetable;
+    boot_process->user_page_table = region1_pagetable;
     boot_process->kernal_page_table = region0_pagetable;
 
     //=== leave user alone for now. but can go here ===//
 
     
-    
+    // interate through each page table entry to index's
     for (int i = 0; i < kernal_page_table_size; i++) {
+
+        //void *lower_addr = VMEM_0_BASE;
+        //void *lower_addr = 
+
         if (i = 0) {
             boot_process->user_text_pt_index = 0; // because this is the bottom;
         }
