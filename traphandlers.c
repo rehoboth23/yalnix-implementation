@@ -9,6 +9,7 @@
 
 #include "kernel.h"
 #include "pipe.h"
+#include "interrupt.h"
 
 // ********************************************************** 
 //                      Trap Handlers
@@ -35,7 +36,7 @@ void TrapKernelHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_CLOCK
  *  
  */
-void TrapClockHandler() {
+void TrapClockHandler(void *ctx) {
     // check ready queue, if there are other processes
     // call context switch on them
 
@@ -90,7 +91,7 @@ void TrapMathHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_TTY_RECEIVE
  *  
  */
-void TrapReceiveHandler(UserContext *user_context) {
+void TrapTTYReceiveHandler(UserContext *user_context) {
     // check that usercontext is valid
 
     // code of usercontext is the terminal has a new line
@@ -105,7 +106,7 @@ void TrapReceiveHandler(UserContext *user_context) {
  * Handler in interrupt vector table for TRAP_TTY_TRANSMIT
  *  
  */
-void TrapTransmitHandler(UserContext *user_context) {
+void TrapTTYTransmitHandler(UserContext *user_context) {
     // check that usercontext is valid
 
     // code field of usercontext is the terminal that completed

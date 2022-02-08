@@ -72,14 +72,14 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     int index = 0;
 
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
-    InterruptVectorTable[TRAP_KERNEL] = trap_kernel_handler;
-    InterruptVectorTable[TRAP_CLOCK] = trap_clock_handler;
-    InterruptVectorTable[TRAP_ILLEGAL] = trap_illegal_handler;
-    InterruptVectorTable[TRAP_MEMORY] = trap_memory_handler;
-    InterruptVectorTable[TRAP_MATH] = trap_math_handler;
-    InterruptVectorTable[TRAP_TTY_RECEIVE] = trap_tty_receive_handler;
-    InterruptVectorTable[TRAP_TTY_TRANSMIT] = trap_tty_transmit_handler;
-    InterruptVectorTable[TRAP_DISK] = trap_disk_handler;
+    InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
+    InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
+    InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
+    InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
+    InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
+    InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
+    InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
+    InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 
     // loop through cmd_args until null
@@ -507,44 +507,4 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         }
     }
     TracePrintf(0,"DEBUG: Done initializing region1 page table\n");   
-}
-
-
-void trap_kernel_handler(void *code){
-    switch ((int) code) {
-         case YALNIX_FORK: 
-            TracePrintf(0, "kernel calling Fork()");
-            break;
-        case YALNIX_EXEC:
-            TracePrintf(0, "kernel calling Exec()");
-            break;
-        case YALNIX_EXIT:
-            TracePrintf(0, "kernel calling Exir()");
-            break;
-        case YALNIX_WAIT:
-            TracePrintf(0, "kernel calling Wait()");
-            break;
-        case YALNIX_GETPID:
-            TracePrintf(0, "kernel calling GetPid()");
-            break;
-        case YALNIX_BRK:
-            TracePrintf(0, "kernel calling Brk()");
-            break;
-        case YALNIX_DELAY:
-            TracePrintf(0, "kernel calling Delay()");
-            break;
-        case YALNIX_TTY_READ:
-            TracePrintf(0, "kernel calling TtyRead()");
-            break;
-        case YALNIX_TTY_WRITE:
-            TracePrintf(0, "kernel calling TtyWrite()");
-            break;
-        default:
-            TracePrintf(0, "Unknown code");
-            break;
-    }
-}
-
-void trap_clock_handler(void *code){
-    // swithc to new context ???
 }
