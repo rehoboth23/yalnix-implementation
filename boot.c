@@ -44,7 +44,7 @@ int h_tracing_level = DEFAULT_TRACE_LEVEL;  // hardware tracing level
 int u_tracing_level = DEFAULT_TRACE_LEVEL;  // user tracing level
 
 // tracefile that traceprint writes to
-//char* tracefile = TRACE;
+char* tracefile; //= TRACE;
 
 // tick interval of clock
 int tick_interval = DEFAULT_TICK_INTERVAL;
@@ -79,7 +79,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
     InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
     InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
-    WriteRegister(REG_VECTOR_BASE, InterruptVectorTable);
+    WriteRegister(REG_VECTOR_BASE, InterruptVectorTable); // CAUSING ERROR: LOOK AT PARAMS FOR WRITEREGISTER
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 
     // loop through cmd_args until null
@@ -306,26 +306,26 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     pcb_t *boot_process = init_process();
 
-    boot_process->pid = 0; // find this value somewhere
-    boot_process->parent = NULL;
+    //boot_process->pid = 0; // find this value somewhere
+    //boot_process->parent = NULL;
 
-    boot_process->user_context = uctxt;
-    boot_process->kernel_context = NULL; // null for now. INIT here?
+    //boot_process->user_context = uctxt;
+    //boot_process->kernel_context = NULL; // null for now. INIT here?
 
     int kernal_page_table_size = VMEM_0_SIZE / PAGESIZE;
     int userland_page_table_size = VMEM_1_SIZE / PAGESIZE;
 
-    pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
-    pte_t *region1_pagetable[userland_page_table_size];
+    //pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
+    //pte_t *region1_pagetable[userland_page_table_size];
 
-    boot_process->user_page_table = region1_pagetable;
-    boot_process->kernal_page_table = region0_pagetable;
+    //boot_process->user_page_table = region1_pagetable;
+    //boot_process->kernal_page_table = region0_pagetable;
 
     //=== leave user alone for now. but can go here ===//
 
     
     // interate through each page table entry to index's
-    for (int i = 0; i < kernal_page_table_size; i++) {
+   /* for (int i = 0; i < kernal_page_table_size; i++) {
 
         //void *lower_addr = VMEM_0_BASE;
         //void *lower_addr = 
@@ -335,10 +335,10 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         }
 
         if 
-    }
+    } */
 
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
-    WriteRegiter(REG_PTRB0, &k_page_table);
+    WriteRegister(REG_PTBR0, &k_page_table);
 
     // tell hardware the number of pages in Region0's page table
     WriteRegister(REG_PTLR0,k_page_table_entries);
@@ -370,18 +370,18 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     // for each index of pagetable, since page table is indexed by vpn
     // index also acts as vpn and (for kernel only) is equal to pfn
-    int index; 
+    //int index; 
     
     // for each each page table entry
     for (index = 0;index < k_page_table_entries; index++) {
         
         // initialize current page
-        page_lowest_addr = VMEM_0_BASE + index * PAGESIZE;
-        page_highest_addr = page_lowest_addr + PAGESIZE;
+        page_lowest_addr = (int*) VMEM_0_BASE + index * PAGESIZE;
+        page_highest_addr = (int*) page_lowest_addr + PAGESIZE;
         
     // .text
         // if the page_highest_addr less than or eql to kernel_data_start
-        if (page_highest_addr <= kernel_data_start) {
+        if (page_highest_addr <= _kernel_data_start) { // FYI changed from kernal_data_start to _kernal_data_start
 
             // create pte with .text permissions
             struct pte_t entry;
