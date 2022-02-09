@@ -17,7 +17,7 @@
 /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 handler_func_t *InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
 
-InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
+InterruptVectorTable[TRAP_KERNEL] = 5TrapKernelHandler;
 InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
 InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
 InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
@@ -35,6 +35,8 @@ enum {
     PAGE_NOT_FREE         =    0,
     VALID_FRAME           =    1,
     INVALID_FRAME         =    0,
+    VM_ENABLED            =    1,
+    VM_DISABLED           =    0,
 
 
     // permissions for page table
@@ -502,7 +504,12 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             break;
         }
     }
-    TracePrintf(0,"DEBUG: Done initializing region1 page table\n");   
+    TracePrintf(0,"DEBUG: Done initializing region1 page table\n"); 
+
+    TracePrintf(0,"DEBUG: Enabling virtual memory\n");
+    WriteRegister(REG_VM_ENABLE,VM_ENABLED);
+
+    TracePrintf(0,"Exiting KernelStart...\n");  
 }
 
 
@@ -569,7 +576,7 @@ int SetKernelBrk(void* addr) {
     int pf0 = PMEM_BASE >> PAGESHIFT;
 
     // if so
-    if (vm_enabled == 1) {
+    if (vm_enabled == VM_ENABLED) {
 
         // check if given address is valid, if invalid, give error
         if ((kernel_brk == NULL) || (kernel_brk > (void *)KERNEL_STACK_BASE)) {
@@ -623,7 +630,7 @@ int SetKernelBrk(void* addr) {
     } 
     
     // if not
-    else if (vm_enabled == 0) {
+    else if (vm_enabled == VM_DISABLED) {
 
     // get how far beyond kernel-orig_brk we are
 
