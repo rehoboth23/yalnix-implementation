@@ -79,7 +79,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
     InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
     InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
-    WriteRegister(REG_VECTOR_BASE, InterruptVectorTable); // CAUSING ERROR: LOOK AT PARAMS FOR WRITEREGISTER
+    //WriteRegister(REG_VECTOR_BASE, InterruptVectorTable); // CAUSING ERROR: LOOK AT PARAMS FOR WRITEREGISTER
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 
     // loop through cmd_args until null
@@ -337,8 +337,15 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         if 
     } */
 
+    pte_t **kernal_page_table = malloc(sizeof(pte_t) * k_page_table_entries);
+
+    if (kernal_page_table == NULL) {
+        TracePrintf(0,"Malloc for user page table failed!\n");
+    }
+
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
-    WriteRegister(REG_PTBR0, &k_page_table);
+    //WriteRegister(REG_PTBR0, &kernal_page_table);
+    WriteRegister(REG_PTBR0, VMEM_0_BASE);
 
     // tell hardware the number of pages in Region0's page table
     WriteRegister(REG_PTLR0,k_page_table_entries);
@@ -371,6 +378,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // for each index of pagetable, since page table is indexed by vpn
     // index also acts as vpn and (for kernel only) is equal to pfn
     //int index; 
+
+    
     
     // for each each page table entry
     for (index = 0;index < k_page_table_entries; index++) {
@@ -378,17 +387,20 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         // initialize current page
         page_lowest_addr = (int*) VMEM_0_BASE + index * PAGESIZE;
         page_highest_addr = (int*) page_lowest_addr + PAGESIZE;
+
+        pte_t *entry = malloc(sizeof(pte_t));
         
-    // .text
+        // .text
         // if the page_highest_addr less than or eql to kernel_data_start
         if (page_highest_addr <= _kernel_data_start) { // FYI changed from kernal_data_start to _kernal_data_start
 
             // create pte with .text permissions
-            struct pte_t entry;
-            entry.valid = VALID_FRAME;
-            entry.prot = R_NO_W_X; // we can read and execute our code 
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            //struct pte_t entry;
+
+            entry->valid = VALID_FRAME;
+            entry->prot = R_NO_W_X; // we can read and execute our code 
+            entry->pfn = index;
+            
 
             // update bitvector
             bit_vector[index] = PAGE_NOT_FREE;
@@ -397,14 +409,13 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // .data
         // else if the page_lowest_addr above or equal to kernel_data_start 
         // and page_highest_addr less than kernel_data_end
-        else if ((page_lowest_addr >= kernel_data_start) && (page_highest_addr < kernel_data_end)) {
+        else if ((page_lowest_addr >= _kernel_data_start) && (page_highest_addr < _kernel_data_end)) {
 
             // create pte with .data permissions
-            struct pte_t entry;
-            entry.valid = 1;
-            entry.prot = R_W_NO_X; // we can read, write but not execute our globals
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            //struct pte_t entry;
+            entry->valid = 1;
+            entry->prot = R_W_NO_X; // we can read, write but not execute our globals
+            entry->pfn = index;
 
             // update bitvector
             bit_vector[index] = PAGE_NOT_FREE;
@@ -413,14 +424,14 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // heap
         // else if the page_lowest_addr above or equal to kernel_data_end
         // and page_highest_addr less than kernel_orig_brk
-        else if ((page_lowest_addr >= kernel_data_end) && (page_highest_addr < _kernel_orig_brk)) {
+        else if ((page_lowest_addr >= _kernel_data_end) && (page_highest_addr < _kernel_orig_brk)) {
             
             // create pte with .heap permissions
-            struct pte_t entry;
-            entry.valid = VALID_FRAME;
-            entry.prot = R_W_NO_X; // we can read, write but not execute our heap
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            //struct pte_t entry;
+            entry->valid = VALID_FRAME;
+            entry->prot = R_W_NO_X; // we can read, write but not execute our heap
+            entry->pfn = index;
+           // k_page_table_entries[index] = entry;
 
             // update bit vector
             bit_vector[index] = PAGE_NOT_FREE;
@@ -429,14 +440,14 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // stack
         // else if the page_lowest_addr above or equal to kernel_stack_base
         // and page_highest_addr less than stack limit
-        else if ((page_lowest_addr >= KERNEL_STACK_BASE) && (page_highest_addr < KERNEL_STACK_LIMIT)) {
+        else if (((int) page_lowest_addr >= KERNEL_STACK_BASE) && ( (int) page_highest_addr < KERNEL_STACK_LIMIT)) { // casting void * to int here. Could be an issues, maybe
 
             // create pte with stack permissions
-            struct pte_t entry;
-            entry.valid = VALID_FRAME;
-            entry.prot = R_W_NO_X; // we can read, write but not execute our stack
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            //struct pte_t entry;
+            entry->valid = VALID_FRAME;
+            entry->prot = R_W_NO_X; // we can read, write but not execute our stack
+            entry->pfn = index;
+            //k_page_table_entries[index] = entry;
 
             // update bit vector
             bit_vector[index] = PAGE_NOT_FREE;
@@ -446,14 +457,18 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         else {
 
             //  create an invalid page entry
-            struct pte_t entry;
-            entry.valid = INVALID_FRAME;
-            k_page_table_entries[index] = entry;
+            //struct pte_t entry;
+            entry->valid = INVALID_FRAME;
+            //k_page_table_entries[index] = entry;
 
             // update bit vector
             bit_vector[index] = PAGE_FREE;
         }
+
+        kernal_page_table[index] = entry; // add entry to page table. I think this is right pointer assignment...
     }
+
+
     
     TracePrintf(0,"DEBUG: Done initializing region0 page table\n");
 
@@ -470,13 +485,14 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
 
     // define page table, an array of pte's
-    struct pte_t u_page_table[u_page_table_entries];
-    if (u_page_table_entries = malloc(sizeof(pte_t * u_page_table_entries)) == NULL) {
+    pte_t **u_page_table = malloc(sizeof(pte_t) * u_page_table_entries);
+    if (u_page_table == NULL) {
         TracePrintf(0,"Malloc for user page table failed!\n");
     }
 
     // tell hardware where Region1's page table, (virtual memory base address of page_table)
-    WriteRegiter(REG_PTRB1,&u_page_table);
+    //WriteRegister(REG_PTBR1,&u_page_table);
+    WriteRegister(REG_PTBR1,VMEM_1_BASE); // Doubt this is correct!
 
     // tell hardware the number of pages in Region1's page table
     WriteRegister(REG_PTLR1,u_page_table_entries);
@@ -494,16 +510,16 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             // this must however be changed afterward!
 
             // create pte with stack permissions
-            struct pte_t entry;
-            entry.valid = VALID_FRAME;
-            entry.prot = R_W_NO_X; // we can read, write but not execute our stack
+            pte_t *entry = malloc(sizeof(pte_t));
+            entry->valid = VALID_FRAME;
+            entry->prot = R_W_NO_X; // we can read, write but not execute our stack
 
             // need to shift our index down by the # of kernel page entries
-            entry.pfn = index - k_page_table_entries
-            u_page_table[index-k_page_table] = entry
+            entry->pfn = index - k_page_table_entries;
+            u_page_table[index-k_page_table_entries] = entry;
 
             // update bit vector
-            bit_vector[index] = PAGE_NOT_FREE
+            bit_vector[index] = PAGE_NOT_FREE;
         }
     }
     TracePrintf(0,"DEBUG: Done initializing region1 page table\n");   
