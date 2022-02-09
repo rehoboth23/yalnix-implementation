@@ -67,12 +67,10 @@ int h_tracing_level = DEFAULT_TRACE_LEVEL;  // hardware tracing level
 int u_tracing_level = DEFAULT_TRACE_LEVEL;  // user tracing level
 
 // tracefile that traceprint writes to
-char* tracefile = TRACE;
+char* tracefile; //= TRACE;
 
 // tick interval of clock
 int tick_interval = DEFAULT_TICK_INTERVAL;
-
-
 
 /*
  * KernelStart
@@ -98,6 +96,18 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 // ====================================== //
 
     int index = 0;
+
+    /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
+    InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
+    InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
+    InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
+    InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
+    InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
+    InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
+    InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
+    InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
+    //WriteRegister(REG_VECTOR_BASE, InterruptVectorTable); // CAUSING ERROR: LOOK AT PARAMS FOR WRITEREGISTER
+    /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 
     // loop through cmd_args until null
     while (cmd_args[index] != NULL) {
@@ -315,7 +325,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
     
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
-    WriteRegiter(REG_PTRB0, &k_page_table);
+    //WriteRegister(REG_PTBR0, &kernal_page_table);
+    WriteRegister(REG_PTBR0, VMEM_0_BASE);
 
     // tell hardware the number of pages in Region0's page table
     WriteRegister(REG_PTLR0,k_page_table_size);
@@ -346,18 +357,22 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     // for each index of pagetable, since page table is indexed by vpn
     // index also acts as vpn and (for kernel only) is equal to pfn
-    int index; 
+    //int index; 
+
+    
     
     // for each each page table entry
     for (index = 0;index < k_page_table_size; index++) {
         
         // initialize current page
-        page_lowest_addr = VMEM_0_BASE + index * PAGESIZE;
-        page_highest_addr = page_lowest_addr + PAGESIZE;
+        page_lowest_addr = (int*) VMEM_0_BASE + index * PAGESIZE;
+        page_highest_addr = (int*) page_lowest_addr + PAGESIZE;
+
+        pte_t *entry = malloc(sizeof(pte_t));
         
-    // .text
+        // .text
         // if the page_highest_addr less than or eql to kernel_data_start
-        if (page_highest_addr <= kernel_data_start) {
+        if (page_highest_addr <= _kernel_data_start) { // FYI changed from kernal_data_start to _kernal_data_start
 
             // create pte with .text permissions
             struct pte_t entry;
@@ -373,7 +388,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // .data
         // else if the page_lowest_addr above or equal to kernel_data_start 
         // and page_highest_addr less than kernel_data_end
-        else if ((page_lowest_addr >= kernel_data_start) && (page_highest_addr < kernel_data_end)) {
+        else if ((page_lowest_addr >= _kernel_data_start) && (page_highest_addr < _kernel_data_end)) {
 
             // create pte with .data permissions
             struct pte_t entry;
@@ -405,7 +420,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     // stack
         // else if the page_lowest_addr above or equal to kernel_stack_base
         // and page_highest_addr less than stack limit
-        else if ((page_lowest_addr >= KERNEL_STACK_BASE) && (page_highest_addr < KERNEL_STACK_LIMIT)) {
+        else if (((int) page_lowest_addr >= KERNEL_STACK_BASE) && ( (int) page_highest_addr < KERNEL_STACK_LIMIT)) { // casting void * to int here. Could be an issues, maybe
 
             // create pte with stack permissions
             struct pte_t entry;
@@ -429,7 +444,11 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             // update bit vector
             bit_vector[index] = PAGE_FREE;
         }
+
+        kernal_page_table[index] = entry; // add entry to page table. I think this is right pointer assignment...
     }
+
+
     
     TracePrintf(0,"DEBUG: Done initializing region0 page table\n");
 
@@ -452,7 +471,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
 
     // tell hardware where Region1's page table, (virtual memory base address of page_table)
-    WriteRegiter(REG_PTRB1,&u_page_table);
+    //WriteRegister(REG_PTBR1,&u_page_table);
+    WriteRegister(REG_PTBR1,VMEM_1_BASE); // Doubt this is correct!
 
     // tell hardware the number of pages in Region1's page table
     WriteRegister(REG_PTLR1,k_page_table_size);
@@ -474,7 +494,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
             u_page_table[index-k_page_table] = entry
 
             // update bit vector
-            bit_vector[index] = PAGE_NOT_FREE
+            bit_vector[index] = PAGE_NOT_FREE;
         }
     }
     TracePrintf(0,"DEBUG: Done initializing region1 page table\n");   
