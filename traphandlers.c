@@ -7,7 +7,7 @@
  * 
 */
 
-#include "kernel.h"
+#include <ykernel.h>
 #include "pipe.h"
 #include "interrupt.h"
 

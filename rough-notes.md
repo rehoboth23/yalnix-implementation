@@ -94,8 +94,7 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 ### Questions
 
 - how to use `helper_maybort(char *msg)`
-- where is `KERNEL_STACK_BASE`? is it at the bottom of the stack, (lower addresses) or at the top (higher addresses). The manual says that `KERNEL_STACK_LIMIT` is at the extreme top of region 0 of virtual memory, so that's at higher addresses
-- how to access kernel brk?
+- what is KernelContext
 
 ### TODO
 
