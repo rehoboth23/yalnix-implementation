@@ -5,11 +5,12 @@
  *  our OS and its first process
  */
 
-#include "include/ykernel.h"
-#include "include/hardware.h"
-#include "include/ylib.h"
-#include "include/yuser.h"
+#include "ykernel.h"
+#include "hardware.h"
+#include "ylib.h"
+#include "yuser.h"
 #include "interrupt.h"
+#include "process.h"
 
 handler_func_t InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
 
@@ -43,12 +44,10 @@ int h_tracing_level = DEFAULT_TRACE_LEVEL;  // hardware tracing level
 int u_tracing_level = DEFAULT_TRACE_LEVEL;  // user tracing level
 
 // tracefile that traceprint writes to
-char* tracefile = TRACE;
+//char* tracefile = TRACE;
 
 // tick interval of clock
 int tick_interval = DEFAULT_TICK_INTERVAL;
-
-#include "process.h"
 
 /*
  * KernelStart
