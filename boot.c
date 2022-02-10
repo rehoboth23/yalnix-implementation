@@ -5,14 +5,27 @@
  *  our OS and its first process
  */
 
-#include "include/ykernel.h"
-#include "include/hardware.h"
-#include "include/ylib.h"
-#include "include/yuser.h"
+#include <ykernel.h>
+#include <hardware.h>
+#include <ylib.h>
+#include <yuser.h>
+#include <yalnix.h>
 #include "interrupt.h"
+#include "process.h"
+#include "traphandlers.h"
 
-handler_func_t InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
+/* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
+handler_func_t *InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
 
+InterruptVectorTable[TRAP_KERNEL] = 5TrapKernelHandler;
+InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
+InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
+InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
+InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
+InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
+InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
+InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
+/* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 enum {
     // default values
     DEFAULT_TRACE_LEVEL   =    1,
@@ -22,6 +35,8 @@ enum {
     PAGE_NOT_FREE         =    0,
     VALID_FRAME           =    1,
     INVALID_FRAME         =    0,
+    VM_ENABLED            =    1,
+    VM_DISABLED           =    0,
 
 
     // permissions for page table
@@ -31,6 +46,14 @@ enum {
     R_W_NO_X              =    6      // read allowed, write allowed, no exec
 };
 
+
+    
+// initialize pointer to bit vector (an array of integers of size num_of_frame)
+int *ptr_bit_vector;
+
+
+// kernel brk CHECK: if I change kernel_brk does _kernel_orig_brk change too
+void *kernel_brk;
 
 // =================================
 //  yalnix-switch-configured values
@@ -43,12 +66,12 @@ int h_tracing_level = DEFAULT_TRACE_LEVEL;  // hardware tracing level
 int u_tracing_level = DEFAULT_TRACE_LEVEL;  // user tracing level
 
 // tracefile that traceprint writes to
-char* tracefile = TRACE;
+char* tracefile; //= TRACE;
 
 // tick interval of clock
 int tick_interval = DEFAULT_TICK_INTERVAL;
 
-#include "process.h"
+
 
 /*
  * KernelStart
@@ -65,23 +88,31 @@ int tick_interval = DEFAULT_TICK_INTERVAL;
  */
 void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
+    TracePrintf(0,"DEBUG: Entering KernelStart\n");
+
+    // update register on location of ivt
+    WriteRegister(REG_VECTOR_BASE, InterruptVectorTable);
+
+    // total number of frames in PM
+    int num_of_frames = pmem_size / PAGESIZE;
+
+    // set up bit vector (to keep track of free frames)
+    int bit_vector[num_of_frames];
+
+    // global pointer point to bit_vector for other functions access
+    ptr_bit_vector = bit_vector;
+
+    // initialize all frames to free
+    for (int fr_number = 0; fr_number < num_of_frames; fr_number++) {
+        bit_vector[fr_number] = PAGE_FREE;
+    }
+
+
 // ====================================== //
 //   HANDLING SWITCHES IN CMDLINE INPUT   //
 // ====================================== //
 
     int index = 0;
-
-    /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
-    InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
-    InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
-    InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
-    InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
-    InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
-    InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
-    InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
-    InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
-    WriteRegister(REG_VECTOR_BASE, InterruptVectorTable);
-    /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 
     // loop through cmd_args until null
     while (cmd_args[index] != NULL) {
@@ -277,21 +308,11 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         // question: can we use fork and exec to run init
     }
 
-
-
     if (pmem_size <= 0) {
         TracePrintf(0,"Error! inputted pmem_size (%d) is negative or 0!\n", pmem_size);
     }
 
-    // init a new process for boot
-
-    int num_of_frames = pmem_size / PAGESIZE;
     
-    // initialize bit vector, an array of integers of size num_of_frame
-    int bit_vector[num_of_frames]; // set to all available initially
-    for (int fr_number = 0; fr_number < num_of_frames; fr_number++) {
-        bit_vector[fr_number] = PAGE_FREE;
-    }
 
 // ================================= //
 //   INITIALIZE REGION0 PAGE TABLE   //
@@ -300,160 +321,126 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Starting to initialize region0 page table\n");
 
     // number of kernel pagetable entires
-    int k_page_table_entries = VMEM_0_SIZE / PAGESIZE;
+    int k_pt_size = VMEM_0_SIZE / PAGESIZE;
 
-        // num of entries in page table for virtual memory
-    //unsigned int pt_num_entries = ReadRegister(REG_PLTR0);
-
-    pcb_t *boot_process = init_process();
-
-    boot_process->pid = 0; // find this value somewhere
-    boot_process->parent = NULL;
-
-    boot_process->user_context = uctxt;
-    boot_process->kernel_context = NULL; // null for now. INIT here?
-
-    int kernal_page_table_size = VMEM_0_SIZE / PAGESIZE;
-    int userland_page_table_size = VMEM_1_SIZE / PAGESIZE;
-
-    pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
-    pte_t *region1_pagetable[userland_page_table_size];
-
-    boot_process->user_page_table = region1_pagetable;
-    boot_process->kernal_page_table = region0_pagetable;
-
-    //=== leave user alone for now. but can go here ===//
-
-    
-    // interate through each page table entry to index's
-    for (int i = 0; i < kernal_page_table_size; i++) {
-
-        //void *lower_addr = VMEM_0_BASE;
-        //void *lower_addr = 
-
-        if (i = 0) {
-            boot_process->user_text_pt_index = 0; // because this is the bottom;
-        }
-
-        if 
+    // declare kernel page table
+    pte_t *k_pt =  malloc(sizeof(pte_t) * k_pt_size);
+    if (k_pt == NULL) {
+        TracePrintf(0,"Error, malloc failed for kernel page table\n");
     }
-
+    
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
-    WriteRegiter(REG_PTRB0, &k_page_table);
+    //WriteRegister(REG_PTBR0, &kernal_page_table);
+    WriteRegister(REG_PTBR0, (unsigned)k_pt);
 
     // tell hardware the number of pages in Region0's page table
-    WriteRegister(REG_PTLR0,k_page_table_entries);
-
-// helpful globals/constants
-
-    // question: how does "build process provide" us with these 3 variables
-    // void *_kernel_data_start; // lowest addr in kernel data
-    // void *_kernel_data_end; // lowest unused address of kernel data,
-    // void *_kernel_orig_brk; // address of kernel brk
-
-    // VMEM_0_BASE // bottom address of vmem
-    // PMEM_BASE // bottom address of pmem
-    // VMEM_1_BASE == VMEM_0_LIMIT
-    // VMEM_1_LIMIT // first byte above the region
-    // VMEM_1_SIZE
-    // VMEM_0_SIZE // size of virtual mem for region 0
-
-    // from 3.5.3
-    // KERNEL_STACK_MAXSIZE // fixed max size
-    // KERNEL_STACK_BASE // bottom (lower address) of stack
-    // KERNEL_STACK_LIMIT // first byte beyond stack (above region 0's vm)
+    WriteRegister(REG_PTLR0,k_pt_size);
 
     
-    // lowest address in a given page (we'll use in our loop)
-    void *page_lowest_addr;
-    // first invalid addr above a given page (we'll use in our loop)
-    void *page_highest_addr;
-
-    // for each index of pagetable, since page table is indexed by vpn
-    // index also acts as vpn and (for kernel only) is equal to pfn
-    int index; 
+    // virtual page number of 0th page for region0
+    int vp0 = VMEM_0_BASE >> PAGESHIFT;
     
+    // physical page number of 0th frame
+    int pf0 = PMEM_BASE >> PAGESHIFT;
+
+    // first valid .text virtual page number
+    int text_vp_lowest = vp0;
+    // first invalid virtual page number above .text
+    int text_vp_highest = (int)_kernel_data_start >> PAGESHIFT;
+
+    // lowest valid .data virtual page number
+    int data_vp_lowest = text_vp_highest;
+    // first invalid virtual page number above .data
+    int data_vp_highest = (int)_kernel_data_end >> PAGESHIFT;
+
+    // lowest valid heap virtual page number
+    int heap_vp_lowest = data_vp_highest;
+    // first invalid virtual page above heap
+    int heap_vp_highest = (int)kernel_brk >> PAGESHIFT;
+
+    // lowest valid stack virtual page number
+    int stack_vp_lowest = (int)KERNEL_STACK_BASE >> PAGESHIFT;
+    // first invalid virtual page above stack
+    int stack_vp_highest = (int)KERNEL_STACK_LIMIT >> PAGESHIFT;
+
+
+    int pt_index; // page table index
+
     // for each each page table entry
-    for (index = 0;index < k_page_table_entries; index++) {
-        
-        // initialize current page
-        page_lowest_addr = VMEM_0_BASE + index * PAGESIZE;
-        page_highest_addr = page_lowest_addr + PAGESIZE;
+    for (pt_index = 0; pt_index < k_pt_size; pt_index++) {
         
     // .text
-        // if the page_highest_addr less than or eql to kernel_data_start
-        if (page_highest_addr <= kernel_data_start) {
+        // if page table index is between .text's virtual page number range
+        if ((pt_index >= text_vp_lowest - vp0) && (pt_index < text_vp_highest - vp0)) { // FYI changed from kernal_data_start to _kernal_data_start
 
             // create pte with .text permissions
-            struct pte_t entry;
+            pte_t entry;
             entry.valid = VALID_FRAME;
             entry.prot = R_NO_W_X; // we can read and execute our code 
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            entry.pfn = pt_index - vp0 + pf0;
+            *(k_pt + pt_index - vp0) = entry;
 
             // update bitvector
-            bit_vector[index] = PAGE_NOT_FREE;
+            bit_vector[pt_index] = PAGE_NOT_FREE;
         }
         
     // .data
-        // else if the page_lowest_addr above or equal to kernel_data_start 
-        // and page_highest_addr less than kernel_data_end
-        else if ((page_lowest_addr >= kernel_data_start) && (page_highest_addr < kernel_data_end)) {
+        // if page table index is between .data's virtual page number range
+        else if ((pt_index >= data_vp_lowest - vp0) && (pt_index < data_vp_highest - vp0)) {
 
             // create pte with .data permissions
-            struct pte_t entry;
-            entry.valid = 1;
+            pte_t entry;
+            entry.valid = VALID_FRAME;
             entry.prot = R_W_NO_X; // we can read, write but not execute our globals
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            entry.pfn = pt_index - vp0 + pf0;
+            *(k_pt + pt_index - vp0) = entry;
 
             // update bitvector
-            bit_vector[index] = PAGE_NOT_FREE;
+            bit_vector[pt_index] = PAGE_NOT_FREE;
         }
 
     // heap
-        // else if the page_lowest_addr above or equal to kernel_data_end
-        // and page_highest_addr less than kernel_orig_brk
-        else if ((page_lowest_addr >= kernel_data_end) && (page_highest_addr < _kernel_orig_brk)) {
+        // if page table index is between heap's virtual page number range
+        else if ((pt_index >= heap_vp_lowest - vp0) && (pt_index < heap_vp_highest - vp0)) {
             
             // create pte with .heap permissions
-            struct pte_t entry;
+            pte_t entry;
             entry.valid = VALID_FRAME;
             entry.prot = R_W_NO_X; // we can read, write but not execute our heap
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            entry.pfn = pt_index - vp0 + pf0;
+            *(k_pt + pt_index - vp0) = entry;
 
             // update bit vector
-            bit_vector[index] = PAGE_NOT_FREE;
+            bit_vector[pt_index] = PAGE_NOT_FREE;
         }
     
     // stack
-        // else if the page_lowest_addr above or equal to kernel_stack_base
-        // and page_highest_addr less than stack limit
-        else if ((page_lowest_addr >= KERNEL_STACK_BASE) && (page_highest_addr < KERNEL_STACK_LIMIT)) {
+        // if page stable index is between the stack's virtual page number range
+        else if ((pt_index >= stack_vp_lowest - vp0) && (pt_index < stack_vp_highest - vp0)) { // casting void * to int here. Could be an issues, maybe
 
             // create pte with stack permissions
-            struct pte_t entry;
+            pte_t entry;
             entry.valid = VALID_FRAME;
             entry.prot = R_W_NO_X; // we can read, write but not execute our stack
-            entry.pfn = index;
-            k_page_table_entries[index] = entry;
+            entry.pfn = pt_index - vp0 + pf0;
+            *(k_pt + pt_index - vp0) = entry;
 
             // update bit vector
-            bit_vector[index] = PAGE_NOT_FREE;
+            bit_vector[pt_index] = PAGE_NOT_FREE;
         }
 
         // otherwise
         else {
 
             //  create an invalid page entry
-            struct pte_t entry;
+            pte_t entry;
             entry.valid = INVALID_FRAME;
-            k_page_table_entries[index] = entry;
+            *(k_pt + pt_index - vp0) = entry;
 
             // update bit vector
-            bit_vector[index] = PAGE_FREE;
+            bit_vector[pt_index] = PAGE_FREE;
         }
+
     }
     
     TracePrintf(0,"DEBUG: Done initializing region0 page table\n");
@@ -463,49 +450,257 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 // ================================= //
 
     // number of user pagetable entires
-    int u_page_table_entries = VMEM_1_SIZE / PAGESIZE;
+    int u_pt_size = VMEM_1_SIZE / PAGESIZE;
+
+    // vp0 = virtual page number 0 of region1
+    vp0 = VMEM_1_BASE >> PAGESHIFT;
+    // pf0 = pageframe0
+
 
     // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entries
-    if (u_page_table_entries < MAX_PT_LEN) {
-        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)", u_page_table_entries,MAX_PT_LEN);
+    if (u_pt_size < MAX_PT_LEN) {
+        TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)", k_pt_size,MAX_PT_LEN);
     }
 
-    // define page table, an array of pte's
-    struct pte_t u_page_table[u_page_table_entries];
-    if (u_page_table_entries = malloc(sizeof(pte_t * u_page_table_entries)) == NULL) {
-        TracePrintf(0,"Malloc for user page table failed!\n");
+    // define user page table, a pointer to the first page table entry
+    pte_t *u_pt = malloc(sizeof(pte_t) * u_pt_size);
+    if (u_pt == NULL) {
+        TracePrintf(0,"Error, malloc failed for user page table\n");
     }
 
     // tell hardware where Region1's page table, (virtual memory base address of page_table)
-    WriteRegiter(REG_PTRB1,&u_page_table);
+    WriteRegister(REG_PTBR1,(unsigned int)u_pt); 
 
     // tell hardware the number of pages in Region1's page table
-    WriteRegister(REG_PTLR1,u_page_table_entries);
+    WriteRegister(REG_PTLR1,u_pt_size);
 
     // when we set up region1 we must do stack only, one valid page for it
 
-
     // find the first free frame in region1 memory space, so we start
     // indexing after all of kernel's frame indices
-    for (index=k_page_table_entries; index<pmem_size >> PAGESHIFT; index++) {
-        if (bit_vector[index] == PAGE_FREE) {
+
+    // have pt_index start at vp0 for region1
+    int u_pt_index = VMEM_1_BASE >> PAGESHIFT; // equals vp0 for region1 pagetable
+
+
+    for (u_pt_index; u_pt_index< VMEM_1_LIMIT >> PAGESHIFT; u_pt_index++) {
+
+        // if there is a free page
+        if (bit_vector[u_pt_index] == PAGE_FREE) {
 
             // create pte with stack permissions
-            // I give write permissions now so that we can write our initial code to it
-            // this must however be changed afterward!
-
-            // create pte with stack permissions
-            struct pte_t entry;
+            pte_t entry;
             entry.valid = VALID_FRAME;
             entry.prot = R_W_NO_X; // we can read, write but not execute our stack
+            entry.pfn = u_pt_index + pf0;
+            *(u_pt + (u_pt_index - vp0)) = entry;
 
-            // need to shift our index down by the # of kernel page entries
-            entry.pfn = index - k_page_table_entries
-            u_page_table[index-k_page_table] = entry
+            // SET STACK POINTER TO POINT AT THE RIGHT VIRTUAL ADDRESS
+            // the right virtual address is (u_pt_index + vp0) << PAGESHIFT
+            uctxt->sp = (void*)((u_pt_index + vp0) << PAGESHIFT);
 
             // update bit vector
-            bit_vector[index] = PAGE_NOT_FREE
+            bit_vector[u_pt_index] = PAGE_NOT_FREE;
+            break;
         }
     }
-    TracePrintf(0,"DEBUG: Done initializing region1 page table\n");   
+    TracePrintf(0,"DEBUG: Done initializing region1 page table\n"); 
+
+    TracePrintf(0,"DEBUG: Enabling virtual memory\n");
+    WriteRegister(REG_VM_ENABLE,VM_ENABLED);
+
+    /* =================== idle =================== */
+    pcb_t *idlePCB = init_process();
+    if (idlePCB == NULL) {
+        // DO SOME ERROR HANDLING
+    }
+    idlePCB->user_context = uctxt;
+    idlePCB->user_context->pc = DoIdle;
+    idlePCB->user_context->sp = KERNEL_STACK_BASE;
+    idlePCB->kernel_context = NULL;
+    idlePCB->pid = helper_new_pid(ReadRegister(REG_PTBR1));
+    idlePCB->k_pt = region0_pagetable;
+    idlePCB->user_page_table = region1_pagetable;
+    /* =================== idle =================== */
+    TracePrintf(0, "Debug: Initializing Idle Proccess\n");
+
+    TracePrintf(0,"Exiting KernelStart...\n");  
+}
+
+
+
+// pcb_t *boot_process = init_process();
+
+    // boot_process->pid = 0; // find this value somewhere
+    // boot_process->parent = NULL;
+
+    // boot_process->user_context = uctxt;
+    // boot_process->kernel_context = NULL; // null for now. INIT here?
+
+    // int kernal_page_table_size = VMEM_0_SIZE / PAGESIZE;
+    // int userland_page_table_size = VMEM_1_SIZE / PAGESIZE;
+
+    // pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
+    // pte_t *region1_pagetable[userland_page_table_size];
+
+    // boot_process->user_page_table = region1_pagetable;
+    // boot_process->kernal_page_table = region0_pagetable;
+
+    //=== leave user alone for now. but can go here ===//
+
+    
+    // interate through each page table entry to index's
+    // for (int i = 0; i < kernal_page_table_size; i++) {
+
+    //     //void *lower_addr = VMEM_0_BASE;
+    //     //void *lower_addr = 
+
+    //     if (i = 0) {
+    //         boot_process->user_text_pt_index = 0; // because this is the bottom;
+    //     }
+
+    //     if 
+    // }
+
+void DoIdle(void) {
+    while(1) {
+        TracePrintf(1,"DoIdle\n");
+        Pause();
+    }
+}
+
+/*
+ * SetKernelBrk
+ *
+ * assume that kernel_brk is correct when vm is enabled
+ * assuming that there's still a 1 to 1 correspondence between kernel virtual memory
+ * and kernel physical memory, so kernel heap must be contiguous
+ * 
+ * reminder that brk points to the first invalid address, so for us, the address
+ * of the first invalid frame 
+ * 
+ *  takes in
+ *      - addr: proposed address of new brk
+ *  returns
+ *      - 0 if success
+ *      - -1 if fail
+ */
+int SetKernelBrk(void* addr) {
+
+    TracePrintf(0,"DEBUG: Entering SetKernelBrk\n");
+    // check if VM enabled
+    int vm_enabled = ReadRegister(REG_VM_ENABLE);
+
+    // vp0 = first virtual page number of region0
+    int vp0 = VMEM_0_BASE >> PAGESHIFT;
+    // pf0 = first frame number for physical memory
+    int pf0 = PMEM_BASE >> PAGESHIFT;
+
+    // if so
+    if (vm_enabled == VM_ENABLED) {
+
+        // check if given address is valid, if invalid, give error
+        if ((kernel_brk == NULL) || (kernel_brk > (void *)KERNEL_STACK_BASE)) {
+            TracePrintf(0,"Error, we got an invalid brk, it's either NULL or within the kernel stack");
+            return ERROR;
+        }
+    
+        // index in page table of kernel brk
+        int index = (int)kernel_brk >> PAGESHIFT - vp0;
+
+        // index in page table of address given
+        int addr_index = (int)addr >> PAGESHIFT - vp0;
+
+        if (addr_index <= index) {
+            TracePrintf(0,"Error, given address is less than or equal to current brk");
+            return ERROR;
+        }
+
+        // check if virtual addresses between current brk and given address are taken
+        for (index ; index < addr_index; index++) {
+            if (*(ptr_bit_vector + index) == PAGE_NOT_FREE) {
+                TracePrintf(0, "Error, at least 1 page between kernel brk and new brk has already been taken\n");
+                return ERROR;
+            }
+        }
+        
+        // get user page table
+        pte_t *u_pt = (pte_t *)ReadRegister(REG_PTBR0);
+
+        index = (int)kernel_brk >> PAGESHIFT - vp0;
+        // if all good, take up the addresses between current brk and address provided
+        for (index ; index < addr_index ; index++) {
+
+            // update bit_vector
+            *(ptr_bit_vector + index) = PAGE_NOT_FREE;
+
+            // update page table
+            pte_t entry;
+            entry.valid = VALID_FRAME;
+            entry.prot = R_W_NO_X;
+            entry.pfn = index + pf0;
+
+            *(u_pt + index - vp0) = entry;
+        }
+
+        // update brk
+        kernel_brk = (void *)DOWN_TO_PAGE(addr);
+
+        TracePrintf(0,"DEBUG: Exiting SetKernelBrk\n");
+        return 0;
+    } 
+    
+    // if not
+    else if (vm_enabled == VM_DISABLED) {
+
+    // get how far beyond kernel-orig_brk we are
+
+        // index in page table of original brk
+        int index = (int)_kernel_orig_brk >> PAGESHIFT- vp0;
+
+        int num_pages_above_orig_brk = 0;
+
+        // while the bit vector at index is taken
+        while (*(ptr_bit_vector + index) == PAGE_NOT_FREE) {
+            
+            // inc count
+            num_pages_above_orig_brk++;
+            // inc index
+            index++;
+
+            // if we reach stack, ERROR
+            if (index * PAGESIZE + VMEM_0_BASE >= KERNEL_STACK_BASE) {
+                TracePrintf(1,"Error, we've hit stack smh\n");
+                return ERROR;
+            }
+        }
+
+        // kernel_brk is the first address of the first free page        
+        kernel_brk = (void *)((index + vp0) << PAGESHIFT);
+        
+        // traceprint count to show how far beyond kernel_orig_brk is
+        TracePrintf(1,"We are %d pages above kernel_orig_brk!\n",num_pages_above_orig_brk);
+    
+        // TODO: find out how this communicates with hardware
+        TracePrintf(0,"DEBUG: Exiting SetKernelBrk\n");
+        return 0;
+    }
+
+    // return error if we somehow get here
+    else {
+        TracePrintf(1,"Error, VM_ENABLED wasn't 0 or 1\n");
+        return ERROR;
+    }
+
+    
+        
+        
+        
+
+       
+
+    
+        
+    
+    
 }

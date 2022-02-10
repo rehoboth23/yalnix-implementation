@@ -94,7 +94,7 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 ### Questions
 
 - how to use `helper_maybort(char *msg)`
-- where is `KERNEL_STACK_BASE`? is it at the bottom of the stack, (lower addresses) or at the top (higher addresses). The manual says that `KERNEL_STACK_LIMIT` is at the extreme top of region 0 of virtual memory, so that's at higher addresses
+- what is KernelContext
 
 ### TODO
 
@@ -406,6 +406,17 @@ number of millisecons (e.g., to speed it up).
 change that to file.
 
 =====================================================================================
+
+## Testing
+
+### Checkpoint 1 and 2
+
+- test kernel's malloc and setkernelbrk
+  - see what happens when malloc fails, does it fail? maybe do a program that mallocs until it fails
+  - see what happens if we set kernelbrk before initializing memory
+- test our memory regions
+  - in a working process, lets try printing all our kernel memory segment address just to see that it lines up
+  - maybe even print our bit vector and trace it through that
 
 ### Oh Shit Reminders:
 
