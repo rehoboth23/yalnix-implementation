@@ -10,21 +10,14 @@
 #include <ylib.h>
 #include <yuser.h>
 #include <yalnix.h>
-#include "interrupt.h"
+//#include "interrupt.h"
 #include "process.h"
 #include "traphandlers.h"
 
 /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
-handler_func_t *InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
+//handler_func_t *InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
 
-InterruptVectorTable[TRAP_KERNEL] = 5TrapKernelHandler;
-InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
-InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
-InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
-InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
-InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
-InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
-InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
+
 /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 enum {
     // default values
@@ -71,7 +64,7 @@ char* tracefile; //= TRACE;
 // tick interval of clock
 int tick_interval = DEFAULT_TICK_INTERVAL;
 
-
+void *DoIdle(void);
 
 /*
  * KernelStart
@@ -88,10 +81,13 @@ int tick_interval = DEFAULT_TICK_INTERVAL;
  */
 void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
+
+    
+
     TracePrintf(0,"DEBUG: Entering KernelStart\n");
 
     // update register on location of ivt
-    WriteRegister(REG_VECTOR_BASE, InterruptVectorTable);
+    
 
     // total number of frames in PM
     int num_of_frames = pmem_size / PAGESIZE;
@@ -106,6 +102,21 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     for (int fr_number = 0; fr_number < num_of_frames; fr_number++) {
         bit_vector[fr_number] = PAGE_FREE;
     }
+
+    InterruptVectorTable = malloc(sizeof(handler_func_t) * TRAP_VECTOR_SIZE);
+
+
+    *InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
+    *InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
+    *InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
+    *InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
+    *InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
+    *InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
+    *InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
+    *InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
+
+    //WriteRegister(REG_VECTOR_BASE, **InterruptVectorTable);
+    WriteRegister(REG_VECTOR_BASE, TRAP_VECTOR_SIZE); // wtf goes here
 
 
 // ====================================== //
@@ -516,11 +527,11 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
     idlePCB->user_context = uctxt;
     idlePCB->user_context->pc = DoIdle;
-    idlePCB->user_context->sp = KERNEL_STACK_BASE;
+    idlePCB->user_context->sp = (void *) KERNEL_STACK_BASE;
     idlePCB->kernel_context = NULL;
-    idlePCB->pid = helper_new_pid(ReadRegister(REG_PTBR1));
-    idlePCB->k_pt = region0_pagetable;
-    idlePCB->user_page_table = region1_pagetable;
+    idlePCB->pid = helper_new_pid((void *) ReadRegister(REG_PTBR1));
+    idlePCB->kernel_page_table = &k_pt;
+    idlePCB->user_page_table = &u_pt;
     /* =================== idle =================== */
     TracePrintf(0, "Debug: Initializing Idle Proccess\n");
 
@@ -562,7 +573,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     //     if 
     // }
 
-void DoIdle(void) {
+void *DoIdle(void) {
     while(1) {
         TracePrintf(1,"DoIdle\n");
         Pause();

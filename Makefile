@@ -10,8 +10,8 @@
 K_SRC_DIR = .
 
 # What are the kernel c and include files?
-K_SRCS = boot.c
-K_INCS = interrupt.h process.h
+K_SRCS = boot.c traphandlers.c process.c
+K_INCS = traphandlers.h process.h 
 
 # Where's your user source?
 U_SRC_DIR = #./test

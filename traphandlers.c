@@ -9,7 +9,6 @@
 
 #include <ykernel.h>
 #include "pipe.h"
-#include "interrupt.h"
 
 // ********************************************************** 
 //                      Trap Handlers
