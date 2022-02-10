@@ -103,20 +103,21 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         bit_vector[fr_number] = PAGE_FREE;
     }
 
-    InterruptVectorTable = malloc(sizeof(handler_func_t) * TRAP_VECTOR_SIZE);
+    InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
+    InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
+    InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
+    InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
+    InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
+    InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
+    InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
+    InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
 
-
-    *InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
-    *InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
-    *InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
-    *InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
-    *InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
-    *InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
-    *InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
-    *InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
+    for(int i_v_i = 8; i_v_i < VMEM_SIZE; i_v_i++) {
+        InterruptVectorTable[i_v_i] = NULL;
+    }
 
     //WriteRegister(REG_VECTOR_BASE, **InterruptVectorTable);
-    WriteRegister(REG_VECTOR_BASE, TRAP_VECTOR_SIZE); // wtf goes here
+    WriteRegister(REG_VECTOR_BASE, (unsigned int) InterruptVectorTable); // wtf goes here
 
 
 // ====================================== //
