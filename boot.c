@@ -509,6 +509,21 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Enabling virtual memory\n");
     WriteRegister(REG_VM_ENABLE,VM_ENABLED);
 
+    /* =================== idle =================== */
+    pcb_t *idlePCB = init_process();
+    if (idlePCB == NULL) {
+        // DO SOME ERROR HANDLING
+    }
+    idlePCB->user_context = uctxt;
+    idlePCB->user_context->pc = DoIdle;
+    idlePCB->user_context->sp = KERNEL_STACK_BASE;
+    idlePCB->kernel_context = NULL;
+    idlePCB->pid = helper_new_pid(ReadRegister(REG_PTBR1));
+    idlePCB->k_pt = region0_pagetable;
+    idlePCB->user_page_table = region1_pagetable;
+    /* =================== idle =================== */
+    TracePrintf(0, "Debug: Initializing Idle Proccess\n");
+
     TracePrintf(0,"Exiting KernelStart...\n");  
 }
 
@@ -547,6 +562,12 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     //     if 
     // }
 
+void DoIdle(void) {
+    while(1) {
+        TracePrintf(1,"DoIdle\n");
+        Pause();
+    }
+}
 
 /*
  * SetKernelBrk

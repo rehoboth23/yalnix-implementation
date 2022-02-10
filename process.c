@@ -47,9 +47,27 @@
 pcb_t *init_process() {
     pcb_t *process = malloc(sizeof(pcb_t));
 
-    if (process != NULL) {
-        return process;
+    if (process == NULL) {
+        return NULL;
     }
 
-    return NULL;
+    // initialize all values to NULL or zero
+    process->pid = 0;
+    process->child_pids = NULL;
+    process->num_children = 0;
+    process->parent = NULL;
+    process->user_context = NULL;
+    process->kernel_context = NULL;
+    process->user_page_table = NULL;
+    process->user_stack_pt_index = 0;
+    process->user_heap_pt_index = 0;
+    process->user_text_pt_index = 0;
+    process->user_data_pt_index = 0;
+    process->kernal_page_table = NULL;
+    process->kernal_stack_pt_index = 0;
+    process->kernal_heap_pt_index = 0;
+    process->kernal_text_pt_index = 0;
+    process->kernal_data_pt_index = 0;
+
+    return process;
 }
