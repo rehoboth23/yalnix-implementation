@@ -9,9 +9,10 @@
 
 #include <ykernel.h>
 #include "pipe.h"
-#include "interrupt.h"
+//#include "interrupt.h"
 
-
+typedef void (*handler_func_t)(void *ctx); // I don't know yet the best way to phrase the generic function type of a handler
+handler_func_t **InterruptVectorTable;
 
 void TrapKernelHandler(void *ctx);
 

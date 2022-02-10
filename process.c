@@ -5,7 +5,8 @@
  *  also holds the functions for manipulating the process
 */
 
-
+#include <stdio.h>
+#include <stdlib.h>
 #include "process.h"
 
 // typedef struct PCB { 
@@ -55,7 +56,7 @@ pcb_t *init_process() {
     process->pid = 0;
     process->child_pids = NULL;
     process->num_children = 0;
-    process->parent = NULL;
+    //process->parent = NULL;
     process->user_context = NULL;
     process->kernel_context = NULL;
     process->user_page_table = NULL;
@@ -63,7 +64,7 @@ pcb_t *init_process() {
     process->user_heap_pt_index = 0;
     process->user_text_pt_index = 0;
     process->user_data_pt_index = 0;
-    process->kernal_page_table = NULL;
+    process->kernel_page_table = NULL;
     process->kernal_stack_pt_index = 0;
     process->kernal_heap_pt_index = 0;
     process->kernal_text_pt_index = 0;
