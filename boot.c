@@ -18,11 +18,9 @@
 //handler_func_t *InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
 
 
-
-
-
 void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]);
 void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uctxt);
+void DoIdle(void);
 
 enum {
     // default values
@@ -35,6 +33,7 @@ enum {
     INVALID_FRAME         =    0,
     VM_ENABLED            =    1,
     VM_DISABLED           =    0,
+    ADDR_SPACE_ENTRY_SIZE =    4,
 
 
     // permissions for page table, in order X W R -- NOT R W X >:(
@@ -72,7 +71,7 @@ char* tracefile; //= TRACE;
 // tick interval of clock
 int tick_interval = DEFAULT_TICK_INTERVAL;
 
-void *DoIdle(void);
+
 
 /*
  * KernelStart
@@ -119,12 +118,14 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     *(InterruptVectorTable + TRAP_TTY_RECEIVE) = TrapTTYReceiveHandler;
     *(InterruptVectorTable + TRAP_TTY_TRANSMIT) = TrapTTYTransmitHandler;
     *(InterruptVectorTable + TRAP_DISK) = TrapDiskHandler;
-    for (int i = 7;i <= 16;i++) {
+    for (int i = 8;i <= TRAP_VECTOR_SIZE;i++) {
         *(InterruptVectorTable + i) = NULL;
     }
 
     //update register on location of ivt
     WriteRegister(REG_VECTOR_BASE, (int)InterruptVectorTable); 
+
+    TracePrintf(0,"Interrupt vector table is at: %x\n",InterruptVectorTable);
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
 
 // ================================= //
@@ -175,7 +176,9 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Enabling virtual memory\n");
     WriteRegister(REG_VM_ENABLE,VM_ENABLED);
 
-    /* =================== idle =================== */
+// ============================= //
+//   SET UP IDLEPCB AND DOIDLE   //
+// ============================= //
     pcb_t *idlePCB = init_process();
     if (idlePCB == NULL) {
         // DO SOME ERROR HANDLING
@@ -183,11 +186,20 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     idlePCB->user_context = uctxt;
     idlePCB->user_context->pc = DoIdle;
     // idlePCB's stack has been set while setting up region1's page table
-    TracePrintf(0,"%x\n",idlePCB->user_context->sp);
+    TracePrintf(0,"sp = %x, pc = %x\n",idlePCB->user_context->sp,idlePCB->user_context->pc);
+
+    void* addr = (void*) DOWN_TO_PAGE(idlePCB->user_context->pc);
+    int vpn = ((int)addr >> PAGESHIFT) - (VMEM_0_BASE >> PAGESHIFT);
+    TracePrintf(0,"pc is at vpn %x\n",vpn);
+
+    pte_t temp = *(k_pt + vpn);
+    TracePrintf(0,"valid bit %d, pfn %x\n",temp.valid,temp.pfn);
+
+
     idlePCB->kernel_context = NULL;
     idlePCB->pid = helper_new_pid((void *) ReadRegister(REG_PTBR1));
-    idlePCB->kernel_page_table = &k_pt;
-    idlePCB->user_page_table = &u_pt;
+    idlePCB->kernel_page_table = k_pt;
+    idlePCB->user_page_table = u_pt;
     /* =================== idle =================== */
     TracePrintf(0, "Debug: Initializing Idle Proccess\n");
 
@@ -229,7 +241,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     //     if 
     // }
 
-void *DoIdle(void) {
+void DoIdle(void) {
     while(1) {
         TracePrintf(1,"DoIdle\n");
         Pause();
@@ -369,9 +381,24 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
     }
     
     TracePrintf(0,"DEBUG: Done initializing region0 page table\n");
+
+    // DELETE ME =====================
+    TracePrintf(0,"\nPrinting stuff inside kernel page table...\n");
+    int index = vp0;
+    for (index; index < VMEM_0_LIMIT >> PAGESHIFT; index++) {
+        pte_t temp = *(k_pt + index - vp0);
+        TracePrintf(0,"index: %d, pfn: %x\n",index - vp0,temp.pfn);
+    }
+
+    // ================================
 }
 
 void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uctxt) {
+
+
+    TracePrintf(0,"Entering SetRegion1_pt\n");
+
+    TracePrintf(0,"VMEM_1_LIMIT: %x\n",VMEM_1_LIMIT);
 
     // vp0 = virtual page number 0 of region1
     int vp0 = VMEM_1_BASE >> PAGESHIFT;
@@ -390,38 +417,49 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
     // indexing after all of kernel's frame indices
 
     // have pt_index start at vp0 for region1
-    int u_pt_index = VMEM_1_BASE >> PAGESHIFT; // equals vp0 for region1 pagetable
+
+    // stack is 1 address space entry below the top of region1's address space
+    uctxt->sp = (void*)VMEM_1_LIMIT - ADDR_SPACE_ENTRY_SIZE;
+
+    TracePrintf(0,"Set stack pointer to %x\n",uctxt->sp);
+
+    void *bottom_of_stack_page = (void *)DOWN_TO_PAGE(uctxt->sp);
+
+    // now we want to set up an entry in the region1 page table
+    // this is the index of the page table
+    int vpn = (int)bottom_of_stack_page >> PAGESHIFT; // equals vp0 for region1 pagetable
+    // so here vpn = pfn
+
+    int u_pt_index = vpn - vp0;
+
+    TracePrintf(0,"page table index %x, which is at vpn %x\n",u_pt_index,vpn);
+
+    TracePrintf(0,"pf0 is %x\n",pf0);
+
+    // create pte with stack permissions
+    pte_t entry;
+    entry.valid = VALID_FRAME;
+    entry.prot = NO_X_W_R; // we can read, write but not execute our stack
+    entry.pfn = u_pt_index + vp0+ pf0;
+    *(u_pt + u_pt_index) = entry;
+
+    TracePrintf(0,"~~~user stack: found free frame at user_pt_index = %x => pfn = %x~~~\n",u_pt_index,entry.pfn);
+
+    // update bit vector
+    bit_vector[u_pt_index] = PAGE_NOT_FREE;
     
 
-    TracePrintf(0,"Let's loop through indices\n");
-
-    for (u_pt_index; u_pt_index < VMEM_1_LIMIT >> PAGESHIFT ; u_pt_index++) {
-
-        // if there is a free page
-        if (bit_vector[u_pt_index] == PAGE_FREE) {
-            TracePrintf(0,"Found a free frame!\n");
-            
-            // create pte with stack permissions
-            pte_t entry;
-            entry.valid = VALID_FRAME;
-            entry.prot = NO_X_W_R; // we can read, write but not execute our stack
-            entry.pfn = u_pt_index + pf0;
-            *(u_pt + (u_pt_index - vp0)) = entry;
-
-            TracePrintf(0,"~~~user stack: found free frame at user_pt_index = %d => pfn = %d~~~\n",u_pt_index-vp0,entry.pfn);
-
-            // SET STACK POINTER TO POINT AT THE RIGHT VIRTUAL ADDRESS
-            // the right virtual address is (u_pt_index + vp0) << PAGESHIFT
-
-            // stack pointer set to the TOP of the allocated page, JUMP DOWN BY 4 BYTES BECAUSE OF LITTLE ENDIAN
-            uctxt->sp = (void *)UP_TO_PAGE((u_pt_index + vp0) << PAGESHIFT);
-            TracePrintf(0,"We set the stack pointer of do idle to %x!\n",(u_pt_index + vp0) << PAGESHIFT);
-
-            // update bit vector
-            bit_vector[u_pt_index] = PAGE_NOT_FREE;
-            break;
-        }
+    // DELETE ME =====================
+    TracePrintf(0,"\nPrinting stuff inside user page table...\n");
+    int index = vp0;
+    for (index; index < VMEM_1_LIMIT >> PAGESHIFT; index++) {
+        pte_t temp = *(u_pt + index - vp0);
+        TracePrintf(0,"index: %d, pfn: %x\n",index - vp0,temp.pfn);
     }
+
+    TracePrintf(0,"Index of stack pointer is %x\n", (int)uctxt->sp >> PAGESHIFT );
+    // ================================
+    
     TracePrintf(0,"DEBUG: Done initializing region1 page table\n"); 
 
 }
@@ -545,7 +583,6 @@ int SetKernelBrk(void* addr) {
         // traceprint count to show how far beyond kernel_orig_brk is
         TracePrintf(0,"We are %d pages above kernel_orig_brk!\n",num_pages_above_orig_brk);
     
-        // TODO: find out how this communicates with hardware
         TracePrintf(0,"DEBUG: Exiting SetKernelBrk\n");
         return 0;
     }

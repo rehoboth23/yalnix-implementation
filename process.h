@@ -17,7 +17,7 @@ typedef struct PCB {
     KernelContext *kernel_context;  // hardware.h provides KernelContext
 
     // user address space info, this is the FIRST ADDRESS of each segment
-    pte_t **user_page_table; // region 1
+    pte_t *user_page_table; // region 1
 
     /*void *user_heap_addr;           
     void *user_text_segment_addr;
@@ -29,7 +29,7 @@ typedef struct PCB {
     int user_data_pt_index;
 
     // kernel address space info, this is the FIRST ADDRESS of each segment
-    pte_t **kernel_page_table;
+    pte_t *kernel_page_table;
 
     /*void *kernel_heap_addr;
     void *kernel_text_segment_addr;

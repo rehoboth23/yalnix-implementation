@@ -21,36 +21,37 @@
  */
 void TrapKernelHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
+    TracePrintf(0,"We got code: %d\n",user_context->code);
     switch (user_context->code) {
          case YALNIX_FORK: 
-            TracePrintf(0, "kernel calling Fork()");
+            TracePrintf(0, "kernel calling Fork()\n");
             break;
         case YALNIX_EXEC:
-            TracePrintf(0, "kernel calling Exec()");
+            TracePrintf(0, "kernel calling Exec()\n");
             break;
         case YALNIX_EXIT:
-            TracePrintf(0, "kernel calling Exir()");
+            TracePrintf(0, "kernel calling Exir()\n");
             break;
         case YALNIX_WAIT:
-            TracePrintf(0, "kernel calling Wait()");
+            TracePrintf(0, "kernel calling Wait()\n");
             break;
         case YALNIX_GETPID:
-            TracePrintf(0, "kernel calling GetPid()");
+            TracePrintf(0, "kernel calling GetPid()\n");
             break;
         case YALNIX_BRK:
-            TracePrintf(0, "kernel calling Brk()");
+            TracePrintf(0, "kernel calling Brk()\n");
             break;
         case YALNIX_DELAY:
-            TracePrintf(0, "kernel calling Delay()");
+            TracePrintf(0, "kernel calling Delay()\n");
             break;
         case YALNIX_TTY_READ:
-            TracePrintf(0, "kernel calling TtyRead()");
+            TracePrintf(0, "kernel calling TtyRead()\n");
             break;
         case YALNIX_TTY_WRITE:
-            TracePrintf(0, "kernel calling TtyWrite()");
+            TracePrintf(0, "kernel calling TtyWrite()\n");
             break;
         default:
-            TracePrintf(0, "Unknown code");
+            TracePrintf(0, "Unknown code\n");
             break;
     }
     // check code of user_context
@@ -69,6 +70,7 @@ void TrapKernelHandler(void *ctx) {
  *  
  */
 void TrapClockHandler(void *ctx) {
+    TracePrintf(0,"Trap Clock Handler called!\n");
     // check ready queue, if there are other processes
     // call context switch on them
 
@@ -83,6 +85,7 @@ void TrapClockHandler(void *ctx) {
  */
 void TrapIllegalHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
+    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
     // same as TrapMathHandler
 }
 
@@ -94,6 +97,7 @@ void TrapIllegalHandler(void *ctx) {
  */
 void TrapMemoryHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
+    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
     // make sure user context is valid
     
     // chcek if this is an implicit request
@@ -113,6 +117,7 @@ void TrapMemoryHandler(void *ctx) {
  */
 void TrapMathHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
+    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
     // get current running process from running queue
     // check that it's valid
 
@@ -128,6 +133,7 @@ void TrapMathHandler(void *ctx) {
  */
 void TrapTTYReceiveHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
+    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
     // check that usercontext is valid
 
     // code of usercontext is the terminal has a new line
@@ -144,6 +150,7 @@ void TrapTTYReceiveHandler(void *ctx) {
  */
 void TrapTTYTransmitHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
+    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
     // check that usercontext is valid
 
     // code field of usercontext is the terminal that completed
@@ -162,6 +169,7 @@ void TrapTTYTransmitHandler(void *ctx) {
  */
 void TrapDiskHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
+    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
     // no need to worry about, this is extra functionality
     // to do with disk
 }
