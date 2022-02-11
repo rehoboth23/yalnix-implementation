@@ -6,15 +6,16 @@ We think we got most of `KernelStart` and , we're printing a bunch of stuff out 
 
 **Does it compile and run:** It compiles, runs through Kernel start entirely, then segfaults in `helper.c` in the `check_ptbr1()` function.
 
+## 
+
 
 
 ## SEGFAULT: greenscreen of death! - details on the error and our debugging efforts
 
 - After going through `StartKernel`, the program segfaults
 
-- We think this happens while the hardware is setting up `DoIdle`.
+- We think this happens while the hardware is setting up `DoIdle`
 
-  
 
 
 
@@ -52,6 +53,31 @@ We thought this problem could have been because we gave the wrong address of our
 
 
 note: we have a BUNCH of traceprints that we didn't comment out for debugging reasons. We really want to get the bug figured out as soon as possible for checkpoint 3, so if anything we're doing is unclear, please contact us! (We don't want to waste your time either.)
+
+
+
+## How we compiled and ran
+
+- everything in our git (NalaOS folder if you git cloned/downloaded it) was put in a folder cause `src`, including the makefile. This `src` folder was outside of `yalnix_framework` and was run on our VM.
+- So calling tree in our VM gives:
+
+```├── src
+├── src
+│   ├── boot.c
+│   ├── Makefile
+│   ├── pipe.c
+│   ├── pipe.h
+│   ├── process.c
+│   ├── process.h
+│   ├── queue.c
+│   ├── traphandlers.c
+│   └── traphandlers.h
+└── yalnix_framework
+    ├── etc
+	...
+```
+
+- Then we went into the `src` directory and called `make`.
 
 ## What we did
 
