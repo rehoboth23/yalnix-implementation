@@ -61,6 +61,12 @@ void DoIdle(void);
  */
 int SetKernelBrk(void* addr);
 
+/**
+ * @brief 
+ * 
+ */
+void KCCopy();
+
 enum {
     // default values
     DEFAULT_TRACE_LEVEL   =    1,
@@ -72,6 +78,7 @@ enum {
     INVALID_FRAME         =    0,
     VM_ENABLED            =    1,
     VM_DISABLED           =    0,
+    ADDR_SPACE_ENTRY_SIZE =    4,
 
 
     // permissions for page table, in order X W R -- NOT R W X >:(

@@ -147,8 +147,9 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
  * 
  */
 void DoIdle(void) {
+    int pid = GetPid();
     while(1) {
-        TracePrintf(1,"DoIdle\n");
+        TracePrintf(1,"DoIdle Process - PID : %d\n", pid);
         Pause();
     }
 }
@@ -329,7 +330,7 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
     // have pt_index start at vp0 for region1
 
     // stack is the top entry of region1s stack
-    uctxt->sp = (void*)VMEM_1_LIMIT - u_pt_size * sizeof(pte_t); // take not of this
+    uctxt->sp = (void*)VMEM_1_LIMIT - ADDR_SPACE_ENTRY_SIZE; // take not of this
 
     TracePrintf(0,"Set stack pointer to %x\n",uctxt->sp);
 
