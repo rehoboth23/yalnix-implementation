@@ -334,7 +334,7 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
 
     TracePrintf(0,"Set stack pointer to %x\n",uctxt->sp);
 
-    void *bottom_of_stack_page = DOWN_TO_PAGE((void *)uctxt->sp);
+    void *bottom_of_stack_page = (void *) DOWN_TO_PAGE(uctxt->sp);
 
     // now we want to set up an entry in the region1 page table
     // this is the index of the page table
