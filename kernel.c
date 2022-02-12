@@ -103,7 +103,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     if (u_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for user page table\n");
     }
-    // memset(u_pt, 0, sizeof(pte_t) * u_pt_size);
+    memset(u_pt, 0, sizeof(pte_t) * u_pt_size);
     SetRegion1_pt(u_pt,u_pt_size,bit_vector,uctxt);
 
     TracePrintf(0,"DEBUG: done with region1 page table\n");
@@ -347,15 +347,12 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
     TracePrintf(0,"pf0 is %x\n", pf0);
 
     // create pte with stack permissions
-    for (int i = 0; i < u_pt_size; i++) {
-        pte_t entry;
-        entry.valid = VALID_FRAME;
-        entry.prot = NO_X_W_R; // we can read, write but not execute our stack
-        entry.pfn = u_pt_index + vp0 + pf0;
-        u_pt[u_pt_index] = entry;
-        bit_vector[u_pt_index + vp0] = PAGE_NOT_FREE;
-        u_pt_index--;
-    }
+    pte_t entry;
+    entry.valid = VALID_FRAME;
+    entry.prot = NO_X_W_R; // we can read, write but not execute our stack
+    entry.pfn = u_pt_index + vp0 + pf0;
+    u_pt[u_pt_index] = entry;
+    bit_vector[u_pt_index + vp0] = PAGE_NOT_FREE;
 
 
     TracePrintf(0,"Index of stack pointer is %x\n", (int)uctxt->sp >> PAGESHIFT );
