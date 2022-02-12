@@ -10,81 +10,19 @@
 #include <ylib.h>
 #include <yuser.h>
 #include <yalnix.h>
-//#include "interrupt.h"
 #include "process.h"
 #include "traphandlers.h"
+#include "kernel.h"
 
 
-//handler_func_t *InterruptVectorTable[TRAP_VECTOR_SIZE]; // the interrupt vector table is an array of interrupt handlers (type handler_t)
-
-
-void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]);
-void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uctxt);
-void DoIdle(void);
-
-enum {
-    // default values
-    DEFAULT_TRACE_LEVEL   =    1,
-    MAX_TRACE_LEVEL       =   10, // yo what is the max trace level am I blind
-    DEFAULT_TICK_INTERVAL =  400, // in ms !
-    PAGE_FREE             =    1,
-    PAGE_NOT_FREE         =    0,
-    VALID_FRAME           =    1,
-    INVALID_FRAME         =    0,
-    VM_ENABLED            =    1,
-    VM_DISABLED           =    0,
-    ADDR_SPACE_ENTRY_SIZE =    4,
-
-
-    // permissions for page table, in order X W R -- NOT R W X >:(
-    
-    
-    X_NO_W_R              =    5,      // read allowed, no write, exec allowed
-    NO_X_NO_W_NO_R        =    0,      // no read, no write, no execUserContext 
-    X_W_R                 =    7,      // read allowed, write allowed, exec allowed
-    NO_X_W_R              =    3,      // read allowed, write allowed, no exec
-    NO_X_NO_W_R           =    1
-};
-
-
-    
-// initialize pointer to bit vector (an array of integers of size num_of_frame)
-int *ptr_bit_vector;
-
-
-// kernel brk CHECK: if I change kernel_brk does _kernel_orig_brk change too
-void *kernel_brk;
-
-// =================================
-//  yalnix-switch-configured values
-// =================================
-// TODO for all of these ^^: find out where we have to put these variables to cause actual change
-
-// tracing levels for kernel, hardware, and user
-int k_tracing_level = DEFAULT_TRACE_LEVEL;  // kernel tracing level
-int h_tracing_level = DEFAULT_TRACE_LEVEL;  // hardware tracing level
-int u_tracing_level = DEFAULT_TRACE_LEVEL;  // user tracing level
-
-// tracefile that traceprint writes to
-char* tracefile; //= TRACE;
-
-// tick interval of clock
-int tick_interval = DEFAULT_TICK_INTERVAL;
-
-
-
-/*
- * KernelStart
- *
- * initializes our OS: page tables for region0 and region1
+/**
+ * @brief initializes our OS: page tables for region0 and region1
  * accepts configurations through cmdline switches, and starts our first
  * process
- *
- * takes in
- *  - cmd_args[], arguments from cmdline
- *  - pmem_size, size of physical memory for our OS, it's in BYTES
- *  - uctxt, usercontext to go into our idle process
  * 
+ * @param cmd_args arguments from cmdline
+ * @param pmem_size pmem_size, size of physical memory for our OS, it's in BYTES
+ * @param uctxt uctxt, usercontext to go into our idle process
  */
 void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {    
 
@@ -98,6 +36,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     
     // total number of frames in PM
     int num_of_frames = pmem_size / PAGESIZE;
+    TracePrintf(0, "Number of Frames -> %d\n", num_of_frames);
 
     // set up bit vector (to keep track of free frames)
     int bit_vector[num_of_frames];
@@ -109,17 +48,16 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
 
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
-    InterruptVectorTable = malloc(sizeof(handler_func_t) * TRAP_VECTOR_SIZE);
-    *(InterruptVectorTable + TRAP_KERNEL) = TrapKernelHandler;
-    *(InterruptVectorTable + TRAP_CLOCK) = TrapClockHandler;
-    *(InterruptVectorTable + TRAP_ILLEGAL) = TrapIllegalHandler;
-    *(InterruptVectorTable + TRAP_MEMORY) = TrapMemoryHandler;
-    *(InterruptVectorTable + TRAP_MATH) = TrapMathHandler;
-    *(InterruptVectorTable + TRAP_TTY_RECEIVE) = TrapTTYReceiveHandler;
-    *(InterruptVectorTable + TRAP_TTY_TRANSMIT) = TrapTTYTransmitHandler;
-    *(InterruptVectorTable + TRAP_DISK) = TrapDiskHandler;
+    InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
+    InterruptVectorTable[TRAP_CLOCK] = TrapClockHandler;
+    InterruptVectorTable[TRAP_ILLEGAL] = TrapIllegalHandler;
+    InterruptVectorTable[TRAP_MEMORY] = TrapMemoryHandler;
+    InterruptVectorTable[TRAP_MATH] = TrapMathHandler;
+    InterruptVectorTable[TRAP_TTY_RECEIVE] = TrapTTYReceiveHandler;
+    InterruptVectorTable[TRAP_TTY_TRANSMIT] = TrapTTYTransmitHandler;
+    InterruptVectorTable[TRAP_DISK] = TrapDiskHandler;
     for (int i = 8;i <= TRAP_VECTOR_SIZE;i++) {
-        *(InterruptVectorTable + i) = NULL;
+        InterruptVectorTable[i] = NULL;
     }
 
     //update register on location of ivt
@@ -139,11 +77,12 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"\t~~~k_pt_size = %d~~~\n",k_pt_size);
 
     // declare kernel page table
-    pte_t *k_pt =  malloc(sizeof(pte_t) * k_pt_size);
+    pte_t k_pt[k_pt_size];
+    
     if (k_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for kernel page table\n");
     }
-
+    // memset(k_pt, 0, sizeof(pte_t) * k_pt_size);
     SetRegion0_pt(k_pt,k_pt_size,bit_vector);
 
 // ================================= //
@@ -160,11 +99,11 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
 
     // define user page table, a pointer to the first page table entry
-    pte_t *u_pt = malloc(sizeof(pte_t) * u_pt_size);
+    pte_t u_pt[u_pt_size];
     if (u_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for user page table\n");
     }
-
+    // memset(u_pt, 0, sizeof(pte_t) * u_pt_size);
     SetRegion1_pt(u_pt,u_pt_size,bit_vector,uctxt);
 
     TracePrintf(0,"DEBUG: done with region1 page table\n");
@@ -207,40 +146,10 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 }
 
 
-
-// pcb_t *boot_process = init_process();
-
-    // boot_process->pid = 0; // find this value somewhere
-    // boot_process->parent = NULL;
-
-    // boot_process->user_context = uctxt;
-    // boot_process->kernel_context = NULL; // null for now. INIT here?
-
-    // int kernal_page_table_size = VMEM_0_SIZE / PAGESIZE;
-    // int userland_page_table_size = VMEM_1_SIZE / PAGESIZE;
-
-    // pte_t *region0_pagetable[kernal_page_table_size]; //READREGISTER FUNCTION INSTEAD?
-    // pte_t *region1_pagetable[userland_page_table_size];
-
-    // boot_process->user_page_table = region1_pagetable;
-    // boot_process->kernal_page_table = region0_pagetable;
-
-    //=== leave user alone for now. but can go here ===//
-
-    
-    // interate through each page table entry to index's
-    // for (int i = 0; i < kernal_page_table_size; i++) {
-
-    //     //void *lower_addr = VMEM_0_BASE;
-    //     //void *lower_addr = 
-
-    //     if (i = 0) {
-    //         boot_process->user_text_pt_index = 0; // because this is the bottom;
-    //     }
-
-    //     if 
-    // }
-
+/**
+ * @brief function for idle process representing kernel process
+ * 
+ */
 void DoIdle(void) {
     while(1) {
         TracePrintf(1,"DoIdle\n");
@@ -248,6 +157,13 @@ void DoIdle(void) {
     }
 }
 
+/**
+ * @brief function to create the VM for region0 pagetable
+ * 
+ * @param k_pt kernel page table
+ * @param k_pt_size kernel page table size
+ * @param bit_vector bit vector array
+ */
 void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
     //WriteRegister(REG_PTBR0, &kernal_page_table);
@@ -303,7 +219,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             entry.valid = VALID_FRAME;
             entry.prot = X_NO_W_R; // we can read and execute our code 
             entry.pfn = pt_index - vp0 + pf0;
-            *(k_pt + pt_index - vp0) = entry;
+            k_pt[pt_index - vp0] = entry;
             
             TracePrintf(0,"~~~.text: pt_index = %d,low = %d, high = %d => pfn = %d~~~\n",pt_index,text_vp_lowest,text_vp_highest,entry.pfn);
 
@@ -321,7 +237,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             entry.valid = VALID_FRAME;
             entry.prot = NO_X_W_R; // we can read and execute only
             entry.pfn = pt_index - vp0 + pf0;
-            *(k_pt + pt_index - vp0) = entry;
+            k_pt[pt_index - vp0] = entry;
 
             TracePrintf(0,"~~~.data: pt_index = %d,low = %d, high = %d => pfn = %d~~~\n",pt_index,data_vp_lowest,data_vp_highest,entry.pfn);
 
@@ -341,7 +257,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             entry.valid = VALID_FRAME;
             entry.prot = NO_X_W_R; // we can read, write but not execute our heap
             entry.pfn = pt_index - vp0 + pf0;
-            *(k_pt + pt_index - vp0) = entry;
+            k_pt[pt_index - vp0] = entry;
 
             TracePrintf(0,"~~~heap: pt_index = %d,low = %d, high = %d => pfn = %d~~~\n",pt_index,heap_vp_lowest,heap_vp_highest,entry.pfn);
 
@@ -358,7 +274,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             entry.valid = VALID_FRAME;
             entry.prot = NO_X_W_R; // we can read, write but not execute our stack
             entry.pfn = pt_index - vp0 + pf0;
-            *(k_pt + pt_index - vp0) = entry;
+            k_pt[pt_index - vp0] = entry;
 
             TracePrintf(0,"~~~stack: pt_index = %d,low = %d, high = %d => pfn = %d~~~\n",pt_index,stack_vp_lowest,stack_vp_highest,entry.pfn);
 
@@ -372,7 +288,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             //  create an invalid page entry
             pte_t entry;
             entry.valid = INVALID_FRAME;
-            *(k_pt + pt_index - vp0) = entry;
+            k_pt[pt_index - vp0] = entry;
 
             // update bit vector
             bit_vector[pt_index] = PAGE_FREE;
@@ -393,6 +309,14 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
     // ================================
 }
 
+/**
+ * @brief function to create the VM for region1 pagetable
+ * 
+ * @param u_pt user page table
+ * @param u_pt_size user page table size
+ * @param bit_vector bit vector array
+ * @param uctxt user context
+ */
 void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uctxt) {
 
 
@@ -418,12 +342,12 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
 
     // have pt_index start at vp0 for region1
 
-    // stack is 1 address space entry below the top of region1's address space
-    uctxt->sp = (void*)VMEM_1_LIMIT - ADDR_SPACE_ENTRY_SIZE;
+    // stack is the top entry of region1s stack
+    uctxt->sp = (void*)VMEM_1_LIMIT - u_pt_size * sizeof(pte_t); // take not of this
 
     TracePrintf(0,"Set stack pointer to %x\n",uctxt->sp);
 
-    void *bottom_of_stack_page = (void *)DOWN_TO_PAGE(uctxt->sp);
+    void *bottom_of_stack_page = (void *)uctxt->sp;
 
     // now we want to set up an entry in the region1 page table
     // this is the index of the page table
@@ -432,30 +356,24 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
 
     int u_pt_index = vpn - vp0;
 
-    TracePrintf(0,"page table index %x, which is at vpn %x\n",u_pt_index,vpn);
+    TracePrintf(0,"page table index %d, which is at vpn %d, for vp0 %d\n", u_pt_index, vpn, vp0);
 
-    TracePrintf(0,"pf0 is %x\n",pf0);
+    TracePrintf(0,"pf0 is %x\n", pf0);
 
     // create pte with stack permissions
-    pte_t entry;
-    entry.valid = VALID_FRAME;
-    entry.prot = NO_X_W_R; // we can read, write but not execute our stack
-    entry.pfn = u_pt_index + vp0+ pf0;
-    *(u_pt + u_pt_index) = entry;
-
-    TracePrintf(0,"~~~user stack: found free frame at user_pt_index = %x => pfn = %x~~~\n",u_pt_index,entry.pfn);
-
-    // update bit vector
-    bit_vector[u_pt_index] = PAGE_NOT_FREE;
-    
-
-    // DELETE ME =====================
-    TracePrintf(0,"\nPrinting stuff inside user page table...\n");
-    int index = vp0;
-    for (index; index < VMEM_1_LIMIT >> PAGESHIFT; index++) {
-        pte_t temp = *(u_pt + index - vp0);
-        TracePrintf(0,"index: %d, pfn: %x\n",index - vp0,temp.pfn);
+    for (int i = 0; i < u_pt_size; i++) {
+        pte_t entry;
+        entry.valid = VALID_FRAME;
+        entry.prot = NO_X_W_R; // we can read, write but not execute our stack
+        entry.pfn = u_pt_index + vp0 + pf0;
+        u_pt[u_pt_index] = entry;
+        TracePrintf(0, "index -> %d, FREE -> %s\n", u_pt_index + vp0, bit_vector[u_pt_index + vp0] == PAGE_FREE ? "YES" : "NO");
+        bit_vector[u_pt_index + vp0] = PAGE_NOT_FREE;
+        TracePrintf(0,"~~~user stack: found free frame at user_pt_index = %x => pfn = %x~~~\n",u_pt_index, entry.pfn);
+        u_pt_index--;
     }
+    // Pause();
+
 
     TracePrintf(0,"Index of stack pointer is %x\n", (int)uctxt->sp >> PAGESHIFT );
     // ================================
@@ -464,19 +382,17 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
 
 }
 
-/*
- * SetKernelBrk
- *
- * assume that kernel_brk is correct when vm is enabled
+/**
+ * @brief assume that kernel_brk is correct when vm is enabled
  * assuming that there's still a 1 to 1 correspondence between kernel virtual memory
  * and kernel physical memory, so kernel heap must be contiguous
  * 
  * reminder that brk points to the first invalid address, so for us, the address
  * of the first invalid frame 
  * 
- *  takes in
- *      - addr: proposed address of new brk
- *  returns
+ * 
+ * @param addr proposed address of new brk
+ * @return int 
  *      - 0 if success
  *      - -1 if fail
  */
@@ -517,7 +433,7 @@ int SetKernelBrk(void* addr) {
 
         // check if virtual addresses between current brk and given address are taken
         for (index ; index < addr_index; index++) {
-            if (*(ptr_bit_vector + index) == PAGE_NOT_FREE) {
+            if (ptr_bit_vector[index] == PAGE_NOT_FREE) {
                 TracePrintf(0, "ERROR, at least 1 page between kernel brk and new brk has already been taken\n");
                 return ERROR;
             }
@@ -531,7 +447,7 @@ int SetKernelBrk(void* addr) {
         for (index ; index < addr_index ; index++) {
 
             // update bit_vector
-            *(ptr_bit_vector + index) = PAGE_NOT_FREE;
+            ptr_bit_vector[index] = PAGE_NOT_FREE;
 
             // update page table
             pte_t entry;
@@ -539,7 +455,7 @@ int SetKernelBrk(void* addr) {
             entry.prot = NO_X_W_R;
             entry.pfn = index + pf0;
 
-            *(u_pt + index - vp0) = entry;
+            u_pt[index - vp0] = entry;
         }
 
         // update brk
@@ -561,7 +477,7 @@ int SetKernelBrk(void* addr) {
         int num_pages_above_orig_brk = 0;
 
         // while the bit vector at index is taken
-        while (*(ptr_bit_vector + index) == PAGE_NOT_FREE) {
+        while (ptr_bit_vector[index] == PAGE_NOT_FREE) {
             
             // inc count
             num_pages_above_orig_brk++;
@@ -592,16 +508,4 @@ int SetKernelBrk(void* addr) {
         TracePrintf(1,"ERROR, VM_ENABLED wasn't 0 or 1\n");
         return ERROR;
     }
-
-    
-        
-        
-        
-
-       
-
-    
-        
-    
-    
 }
