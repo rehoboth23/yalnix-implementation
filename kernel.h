@@ -18,7 +18,7 @@
  * @param pmem_size pmem_size, size of physical memory for our OS, it's in BYTES
  * @param uctxt uctxt, usercontext to go into our idle process
  */
-void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt)
+void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt);
 
 /**
  * @brief function to create the VM for region0 pagetable
@@ -59,7 +59,7 @@ void DoIdle(void);
  *      - 0 if success
  *      - -1 if fail
  */
-int SetKernelBrk(void* addr)
+int SetKernelBrk(void* addr);
 
 enum {
     // default values
@@ -99,12 +99,12 @@ void *kernel_brk;
 // TODO for all of these ^^: find out where we have to put these variables to cause actual change
 
 // tracing levels for kernel, hardware, and user
-int k_tracing_level = DEFAULT_TRACE_LEVEL;  // kernel tracing level
-int h_tracing_level = DEFAULT_TRACE_LEVEL;  // hardware tracing level
-int u_tracing_level = DEFAULT_TRACE_LEVEL;  // user tracing level
+#define k_tracing_level DEFAULT_TRACE_LEVEL;  // kernel tracing level
+#define h_tracing_level DEFAULT_TRACE_LEVEL;  // hardware tracing level
+#define u_tracing_level DEFAULT_TRACE_LEVEL;  // user tracing level
 
 // tracefile that traceprint writes to
 char* tracefile; //= TRACE;
 
 // tick interval of clock
-int tick_interval = DEFAULT_TICK_INTERVAL;
+#define tick_interval DEFAULT_TICK_INTERVAL;

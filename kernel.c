@@ -131,10 +131,6 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     int vpn = ((int)addr >> PAGESHIFT) - (VMEM_0_BASE >> PAGESHIFT);
     TracePrintf(0,"pc is at vpn %x\n",vpn);
 
-    pte_t temp = *(k_pt + vpn);
-    TracePrintf(0,"valid bit %d, pfn %x\n",temp.valid,temp.pfn);
-
-
     idlePCB->kernel_context = NULL;
     idlePCB->pid = helper_new_pid((void *) ReadRegister(REG_PTBR1));
     idlePCB->kernel_page_table = k_pt;
@@ -302,7 +298,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
     TracePrintf(0,"\nPrinting stuff inside kernel page table...\n");
     int index = vp0;
     for (index; index < VMEM_0_LIMIT >> PAGESHIFT; index++) {
-        pte_t temp = *(k_pt + index - vp0);
+        pte_t temp = k_pt[index - vp0];
         TracePrintf(0,"index: %d, pfn: %x\n",index - vp0,temp.pfn);
     }
 
