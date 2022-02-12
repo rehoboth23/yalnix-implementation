@@ -293,16 +293,6 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
     }
     
     TracePrintf(0,"DEBUG: Done initializing region0 page table\n");
-
-    // DELETE ME =====================
-    TracePrintf(0,"\nPrinting stuff inside kernel page table...\n");
-    int index = vp0;
-    for (index; index < VMEM_0_LIMIT >> PAGESHIFT; index++) {
-        pte_t temp = k_pt[index - vp0];
-        TracePrintf(0,"index: %d, pfn: %x\n",index - vp0,temp.pfn);
-    }
-
-    // ================================
 }
 
 /**
@@ -348,7 +338,6 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
     // now we want to set up an entry in the region1 page table
     // this is the index of the page table
     int vpn = (int)bottom_of_stack_page >> PAGESHIFT; // equals vp0 for region1 pagetable
-    // so here vpn = pfn
 
     int u_pt_index = vpn - vp0;
 
@@ -363,12 +352,9 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
         entry.prot = NO_X_W_R; // we can read, write but not execute our stack
         entry.pfn = u_pt_index + vp0 + pf0;
         u_pt[u_pt_index] = entry;
-        TracePrintf(0, "index -> %d, FREE -> %s\n", u_pt_index + vp0, bit_vector[u_pt_index + vp0] == PAGE_FREE ? "YES" : "NO");
         bit_vector[u_pt_index + vp0] = PAGE_NOT_FREE;
-        TracePrintf(0,"~~~user stack: found free frame at user_pt_index = %x => pfn = %x~~~\n",u_pt_index, entry.pfn);
         u_pt_index--;
     }
-    // Pause();
 
 
     TracePrintf(0,"Index of stack pointer is %x\n", (int)uctxt->sp >> PAGESHIFT );
