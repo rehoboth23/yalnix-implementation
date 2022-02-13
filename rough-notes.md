@@ -108,6 +108,89 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 - implement ./yalnix <somefile> , basically load a different file as an initial process
 - find permissions of each segment for both user and kernel
 
+## Checkpoint 3
+
+### Requirements
+
+Overview:
+
+- kernel should load `init` into userland
+- for an init with a `while(1)`loop that tracepeinrts and pauses, our kernel should bounce between dile and init on each clock trap.
+- Kernel should handle `brk`, `getpid` and `delay`
+
+Need to add an `init.c` in the USER part of the makefile
+
+We should probably have a test file `test.c`
+
+Ok! How do we get to this goal?
+
+
+
+**8.3.1 A New Process** (most of it will be figuring out `KCCopy())`
+
+- `KernelStart` creates a `initPCB`
+
+  - `init`  is cloning into idle, make more sense (whatever that means)
+
+    - what this means is 
+
+    - ```c
+      TracePrintf(0,"Cloning A into B\n");
+      rc = KernelContextSwitch(KCCopy, B_PCB_p, NULL);
+      TracePrintf(0,"We back, am I A or B?"); // both A and B prints this
+      ```
+
+    - 
+
+  - new `initPCB` has:
+
+    - empty (all invalid) region1 page table
+    - new frames for its kernel stack frame
+    - a `UserContext`, `uctxt` from `KernelStart`
+    - a new pid with `helper_new_pid()`
+
+- Write a `KCCopy()` to 
+
+  - `KernelContext *KCCopy(KernelContext *kc_in, void *new_pcb_p, void *not_used)`
+  - copies kernel context in `*kc_in` into the new pcb, and copy contents of the kernel stack into frames that have been allocated for the new process's kernel stack, then return `kc_in`
+  - copy the current KernelContext into `initPCB`
+  - copy the contents of the current kernel stack into the new kernel stack frames in `initPCB`
+    - *how to do? temporarily map destination frame into some page, Sean likes the page right below kernel stack*
+
+**8.3.2 Loading a Program **(will take quite a bit of work)
+
+- Kernel will open `init` and set it up in region 1
+
+- make a copy of `yalnix_framework/sample/template.c` and put it in our own directory, and edit it to match our kernel.
+
+- look for places marked `==>>`, they indicate instructions to follow.
+
+- figure 8.1 shows how it's meant to be done, in region 1's page table
+
+  
+
+**8.3.3 Specifying Init** (should b short and easy here)
+
+- `cmd_args[0]` is what provides the `init` program for `KernelStart`, pass the whole `cmd_args` as arguments for the new process
+- If no `cmd_args`, use `init` as a default program
+
+**8.3.4 Changing Process**
+
+- need to write `KCSwitch()` to:
+  - `KernelContextSwitch(KCSwitch, (void*) &current_pcb, (void *) &next_pcb)` is how it's called
+  - copy current KernelContext into the old PCB
+  - change region 0 kernel stack mappings to thosse for the new PCB
+  - return a pointer to the KernelContext in the new PCB
+
+
+
+**8.3.5 TESTING!!!**
+
+- test the three sys calls in a `test.c`, need to start a testing convention
+- maybe a folder called "tests" and we put each of our tests in them, then call `./yalnix test1` or something like this?
+
+
+
 ## Notes
 
 ### Data Structures

@@ -14,10 +14,10 @@
 //                      Trap Handlers
 // **********************************************************
 
-/*
- * TrapKernelHandler
- *
- * Handler in interrupt vector table for TRAP_KERNEL
+/**
+ * @brief Handler in interrupt vector table for TRAP_KERNEL
+ * 
+ * @param ctx user context from which the trap occured
  */
 void TrapKernelHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
@@ -63,11 +63,10 @@ void TrapKernelHandler(void *ctx) {
     // return arguments should be in regs[0]
 }
 
-/*
- * TrapClockHandler
- *
- * Handler in interrupt vector table for TRAP_CLOCK
- *  
+/**
+ * @brief Handler in interrupt vector table for TRAP_CLOCK
+ * 
+ * @param ctx context from which the trap occured
  */
 void TrapClockHandler(void *ctx) {
     TracePrintf(0,"Trap Clock Handler called!\n");
@@ -77,11 +76,10 @@ void TrapClockHandler(void *ctx) {
     // if no other processes ready, dispatch idle
 }
 
-/*
- * TrapIllegalHandler
- *
- * Handler in interrupt vector table for TRAP_ILLEGAL
- *  
+/**
+ * @brief Handler in interrupt vector table for TRAP_ILLEGAL
+ * 
+ * @param ctx user context from which the trap occured
  */
 void TrapIllegalHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
@@ -89,11 +87,10 @@ void TrapIllegalHandler(void *ctx) {
     // same as TrapMathHandler
 }
 
-/*
- * TrapMemoryHandler
- *
- * Handler in interrupt vector table for TRAP_MEMORY
- *  
+/**
+ * @brief Handler in interrupt vector table for TRAP_MEMORY
+ * 
+ * @param ctx user context from which the trap occured
  */
 void TrapMemoryHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
@@ -109,11 +106,10 @@ void TrapMemoryHandler(void *ctx) {
     // otherwise, same as TrapMathHandler
 }
 
-/*
- * TrapMathHandler
- *
- * Handler in interrupt vector table for TRAP_MATH
- *  
+/**
+ * @brief Handler in interrupt vector table for TRAP_MATH
+ * 
+ * @param ctx user context from which the trap occured
  */
 void TrapMathHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
@@ -125,11 +121,10 @@ void TrapMathHandler(void *ctx) {
     // get another ready process to run (or do we call some function to do this?)
 }
 
-/*
- * TrapReceiveHanlder
- *
- * Handler in interrupt vector table for TRAP_TTY_RECEIVE
- *  
+/**
+ * @brief Handler in interrupt vector table for TRAP_TTY_RECEIVE
+ * 
+ * @param ctx user context from which the trap occured
  */
 void TrapTTYReceiveHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
@@ -142,11 +137,11 @@ void TrapTTYReceiveHandler(void *ctx) {
     // buffer input line for more user TtyRead syscalls if necessary
     
 }
-/*
- * TrapTransmitHandler
- *
- * Handler in interrupt vector table for TRAP_TTY_TRANSMIT
- *  
+
+/**
+ * @brief Handler in interrupt vector table for TRAP_TTY_TRANSMIT
+ * 
+ * @param ctx user context from which the trap occured
  */
 void TrapTTYTransmitHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
@@ -161,11 +156,10 @@ void TrapTTYTransmitHandler(void *ctx) {
 
 }
 
-/*
- * TrapDiskHandler
- *
- * Handler in interrupt vector table for TRAP_DISK
- *  
+/**
+ * @brief Handler in interrupt vector table for TRAP_DISK
+ * 
+ * @param ctx user context from which the trap occured
  */
 void TrapDiskHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
@@ -182,7 +176,11 @@ void TrapDiskHandler(void *ctx) {
 // =    Basic process coordination 3.1.1    =
 // ==========================================
 
-
+/**
+ * @brief 
+ * 
+ * @return int 
+ */
 int Fork(void) {
     // check global running queue
     // give error if it's empty
@@ -212,6 +210,13 @@ int Fork(void) {
     // return returncode
 }
 
+/**
+ * @brief 
+ * 
+ * @param filename 
+ * @param argvec 
+ * @return int 
+ */
 int Exec(char *filename, char **argvec) {
     // check arguments
     // give error if invalid, and do not destroy process
@@ -228,6 +233,11 @@ int Exec(char *filename, char **argvec) {
     // if success, we don't return.
 }
 
+/**
+ * @brief 
+ * 
+ * @param status 
+ */
 void Exit(int status) {
     // check global running queue
     // give error if its empty
@@ -245,6 +255,12 @@ void Exit(int status) {
 
 }
 
+/**
+ * @brief 
+ * 
+ * @param status_ptr 
+ * @return int 
+ */
 int Wait(int *status_ptr) {
     // give error if it's empty
     // 
@@ -258,12 +274,24 @@ int Wait(int *status_ptr) {
     // also vice-versa: if a process terminates and any of it's children is still alive then it becomes defunct
 }
 
+/**
+ * @brief Get the Pid object
+ * 
+ * @return int 
+ */
 int GetPid(void) {
     // check global running queue
     // give error if it's empty
 
     // access running process via queue and return its pid
 }
+
+/**
+ * @brief 
+ * 
+ * @param addr 
+ * @return int 
+ */
 int Brk(void *addr) {
     // NOTE: refer to kernelsetbrk
     // check global running queue
@@ -284,6 +312,12 @@ int Brk(void *addr) {
 // =    I/O Syscalls 3.1.2      =
 // ==============================
 
+/**
+ * @brief 
+ * 
+ * @param clock_ticks 
+ * @return int 
+ */
 int Delay(int clock_ticks) {
 
     if (clock_ticks == 0) {
@@ -307,6 +341,14 @@ int Delay(int clock_ticks) {
 
 }
 
+/**
+ * @brief 
+ * 
+ * @param tty_id 
+ * @param buf 
+ * @param len 
+ * @return int 
+ */
 int TtyRead(int tty_id, void *buf, int len) {
     // pseudocode
 }
@@ -315,6 +357,12 @@ int TtyRead(int tty_id, void *buf, int len) {
 // =    InterProcess Communication (IPC) 3.1.3    =
 // ================================================
 
+/**
+ * @brief 
+ * 
+ * @param pipe_idp 
+ * @return int 
+ */
 int PipeInit(int *pipe_idp) {
     // return error if address null
 
@@ -329,6 +377,14 @@ int PipeInit(int *pipe_idp) {
     // return 0
 }
 
+/**
+ * @brief 
+ * 
+ * @param pipe_id 
+ * @param buf 
+ * @param len 
+ * @return int 
+ */
 int PipeRead(int pipe_id, void *buf, int len) {
     // check arguments are valid (no negatives or nulls)
         // error if anything invalid
@@ -350,6 +406,14 @@ int PipeRead(int pipe_id, void *buf, int len) {
     // return error if any of the pipe manipulating functions fail
 }
 
+/**
+ * @brief 
+ * 
+ * @param pipe_id 
+ * @param buf 
+ * @param len 
+ * @return int 
+ */
 int PipeWrite(int pipe_id, void *buf, int len) {
     // check arguments are valid (no negatives or nulls)
         // error if anything invalid
@@ -380,6 +444,12 @@ int PipeWrite(int pipe_id, void *buf, int len) {
 
 // What does he mean by synchronization calls operating on processes vs pthreads???
 
+/**
+ * @brief 
+ * 
+ * @param lock_idp 
+ * @return int 
+ */
 int LockInit(int *lock_idp) {
     // check for a valid argument
 
@@ -395,6 +465,12 @@ int LockInit(int *lock_idp) {
     // Return error if any
 }
 
+/**
+ * @brief 
+ * 
+ * @param lock_id 
+ * @return int 
+ */
 int Acquire(int lock_id) {
 
     // block caller by adding it to blocked processes queue.
@@ -405,6 +481,12 @@ int Acquire(int lock_id) {
     // return if failure. 
 }
 
+/**
+ * @brief 
+ * 
+ * @param lock_id 
+ * @return int 
+ */
 int Release(int lock_id) {
     // check if caller has lock
 	// return error if they doesn't
@@ -414,11 +496,23 @@ int Release(int lock_id) {
     // return error or not. 
 }
 
+/**
+ * @brief 
+ * 
+ * @param cvar_idp 
+ * @return int 
+ */
 int CvarInit(int *cvar_idp) {
     // init a cvar and assign to cvar_idp.
     // return error or not
 }
 
+/**
+ * @brief 
+ * 
+ * @param cvar_idp 
+ * @return int 
+ */
 int CvarSignal(int cvar_idp) {
     // while (1)
 	// let waiter run by adding process to blocked processes queue
@@ -427,12 +521,26 @@ int CvarSignal(int cvar_idp) {
     // return error or not
 }
 
+/**
+ * @brief 
+ * 
+ * @param cvar_idp 
+ * @return int 
+ */
 int CvarBroadcast(int cvar_idp) {
     // while (1)
 	// release all processes in blocked processes queue. 
 
     // return error or not
 }
+
+/**
+ * @brief 
+ * 
+ * @param cvar_idp 
+ * @param lock_id 
+ * @return int 
+ */
 int CvarWait(int cvar_idp, int lock_id) {
     // block the current process by adding it to the blocked queue. 
     // release the the mutex lock signaled by lock_idp
@@ -444,6 +552,13 @@ int CvarWait(int cvar_idp, int lock_id) {
 
     // return error code or no error
 }
+
+/**
+ * @brief 
+ * 
+ * @param id 
+ * @return int 
+ */
 int Reclaim(int id) {
     // destory the lock identified by id, if there is one.
     // release associated resources, if any. 
