@@ -5,14 +5,9 @@
  *  this'll be the helper-functions for our running, ready, defunct, and blocked queues
 */
 
-#include "process.h"
+#include "queue.h"
 
-typedef struct Queue {
-    // malloc space in heap
-    // check malloc, if not enough space, give error
 
-    // return address to malloc'd memory
-} queue_t;
 
 // QUESTION: do we need a function for deleting queues?
 
@@ -80,7 +75,7 @@ int queue_remove(queue_t *queue, pcb_t *process) {
  *  - address to process if success
  *  - NULL if fail (e.g. queue is empty)
  */
-struct PCB_t* queue_pop(queue_t *queue) {
+pcb_t* queue_pop(queue_t *queue) {
     // give error if queue is empty
 
     // call queue_remove on the first process in array

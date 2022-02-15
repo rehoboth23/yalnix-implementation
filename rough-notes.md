@@ -21,15 +21,12 @@ The above, sketches and pseudocode, should be done in our real source-files as c
 - Missing `KernelStart`
 - for virtual addresses we have options: pointers, page numbers, indices into a regions page table **DECIDE ON A WAY TO REFER TO VIRTUAL ADDRESSES**
   - lets do **indices**
-
 - no need to support bi-directional pipes
 - PCB: missing brk, space allocated for user stack (bruh what does that mean), a range of addresses? Should we do a start and end? => **WE MUST EDIT PCB TO ADD THESE**
 - change syscall handler names, make it different from lib wrapper. **IMUST CHANGE SYSCALL HANDLER NAMES**
 - PipeWrite: what if someone was blocked while waiting to read from this pipe
   - we need to signal them :D 
   - **UPDATE PIPEWRITE PSEUDOCODE**
-
-- 
 
 ## Checkpoint 2: Idle
 
@@ -90,23 +87,6 @@ The above, sketches and pseudocode, should be done in our real source-files as c
     - "cook things" so that when we return to user mode at the end of `KernelStart`, we return to this modified UserContext
 
     - ADD A TRACEPRINT "leaving KernelStart" at the end of `KernelStart`
-
-### Questions
-
-- how to use `helper_maybort(char *msg)`
-- what is KernelContext
-
-### TODO
-
-- edit makefile to build `boot.c` to get the `yalnix` executable
-- write `boot.c`
-  - includes yUser, yhardware, ylib and ykernel
-  - contains `KernelStart`
-- for the tracing_level-setting switches, we don't yet handle the case where no level is inputted, or if the level inputted is some invalid string. `atoi` should return some sort of error.
-  - `atoi` returns 0 on error, but our level being 0 is valid, so atoi(input) returning 0 might be correct. --> bruh
-
-- implement ./yalnix <somefile> , basically load a different file as an initial process
-- find permissions of each segment for both user and kernel
 
 ## Checkpoint 3
 
@@ -188,6 +168,21 @@ Ok! How do we get to this goal?
 
 - test the three sys calls in a `test.c`, need to start a testing convention
 - maybe a folder called "tests" and we put each of our tests in them, then call `./yalnix test1` or something like this?
+
+### Implementation?
+
+- in `kernel.c` have the queues of processes as globals there
+- when we call sys calls, we get the current process by accessing the global queues, the only process in the running queue needs to be the prrocess that called the syscall
+
+
+
+**TODOs**
+
+- write up queue.c, and then write up some testing code for it, then get the sys calls giong
+  - test code will check for:
+    - feeding invalid arguments for *every* queue helper function
+    - adding a process to a queue it's already a part of
+    - popping and removing from an empty queue
 
 
 

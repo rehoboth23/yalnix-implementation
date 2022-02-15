@@ -10,10 +10,14 @@
 #include <ylib.h>
 #include <yuser.h>
 #include <yalnix.h>
-#include "process.h"
 #include "traphandlers.h"
 #include "kernel.h"
 
+
+queue_t* running_q;
+queue_t* ready_q;
+queue_t* blocked_q;
+queue_t* defunct_q;
 
 /**
  * @brief initializes our OS: page tables for region0 and region1

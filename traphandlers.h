@@ -9,6 +9,8 @@
 
 #include <ykernel.h>
 #include "pipe.h"
+#include "queue.h"
+
 
 /**
  * @brief Interrupt Vector Table to map traps to functions

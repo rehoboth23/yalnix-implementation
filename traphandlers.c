@@ -9,6 +9,14 @@
 
 #include <ykernel.h>
 #include "pipe.h"
+#include "queue.h"
+#include "contextswitch.h"
+
+extern queue_t* running_q;
+extern queue_t* ready_q; 
+extern queue_t* blocked_q;
+extern queue_t* defunct_q;
+
 
 // ********************************************************** 
 //                      Trap Handlers
@@ -70,10 +78,45 @@ void TrapKernelHandler(void *ctx) {
  */
 void TrapClockHandler(void *ctx) {
     TracePrintf(0,"Trap Clock Handler called!\n");
-    // check ready queue, if there are other processes
-    // call context switch on them
 
+    // check ready queue, if there are other processes
+    int size = queue_size(ready_q);
+
+    // if there are processes on ready queue
+    if (size >= 1) {
+        TracePrintf(0,"There are processes in the ready queue, switching contexts...\n");
+
+        pcb_t *curr_proc = queue_pop(running_q);
+        pcb_t *next_proc = queue_pop(ready_q);
+
+        // check that we successfully got the process
+        if ((curr_proc == NULL) || (next_proc == NULL)) {
+            TracePrintf(0,"Error, queue_pop failed for either the running or ready queue\n");
+        }
+
+        // bookkeeping with queues
+        queue_add(running_q,next_proc);
+        queue_add(ready_q,curr_proc);
+
+        // copy user context into current process
+        curr_proc->user_context = (UserContext *)ctx;
+
+        // invoke KCSwitch
+        int rc = KernelContextSwitch(KCSwitch,curr_proc,next_proc);
+
+        // check return code
+        if (rc != 0) {
+            TracePrintf(0,"Something went wrong with KernelContext when trying to go from processs %d to %d\n",(int)curr_proc->pid,(int)next_proc->pid);
+        }
+
+        // restore ctx
+        ctx = (void*)curr_proc->user_context;
+    }
     // if no other processes ready, dispatch idle
+    else {
+        TracePrintf(0,"No other processes detected. Doing nothing\n");
+    }
+    
 }
 
 /**
