@@ -19,8 +19,8 @@ queue_t* ready_q;
 queue_t* blocked_q;
 queue_t* defunct_q;
 
-pte_t *ptr_k_pt;
-int *ptr_bit_vector;
+pte_t *k_pt;
+int *bit_vector;
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -46,15 +46,16 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0, "Number of Frames -> %d\n", num_of_frames);
 
     // set up bit vector (to keep track of free frames)
-    int bit_vector[num_of_frames];
+    bit_vector = malloc(num_of_frames * sizeof(int));
+
+    if (bit_vector == NULL) {
+        TracePrintf(0,"Bit vector malloc failed\n");
+        Halt();
+    }
     // initialize all frames to free
     for (int fr_number = 0; fr_number < num_of_frames; fr_number++) {
         bit_vector[fr_number] = PAGE_FREE;
     }
-
-    // global pointer point to bit_vector for other functions access
-    TracePrintf(0,"HERE PTR BIT VECTOR IS %x\n\nHowever, %p %p\n",&ptr_bit_vector,&bit_vector[0],&bit_vector[510]);
-
 
 
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
@@ -87,14 +88,13 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"\t~~~k_pt_size = %d~~~\n",k_pt_size);
 
     // declare kernel page table
-    pte_t k_pt[k_pt_size];
-
-    ptr_k_pt = k_pt;
+    k_pt = malloc(k_pt_size * sizeof(pte_t));
     
     if (k_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for kernel page table\n");
     }
-    // memset(k_pt, 0, sizeof(pte_t) * k_pt_size);
+    memset(k_pt, 0, sizeof(pte_t) * k_pt_size);
+
     SetRegion0_pt(k_pt,k_pt_size,bit_vector);
 
 // ================================= //
@@ -111,7 +111,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     }
 
     // define user page table, a pointer to the first page table entry
-    pte_t u_pt[u_pt_size];
+    pte_t *u_pt = malloc(u_pt_size * sizeof(pte_t));
     if (u_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for user page table\n");
     }
@@ -119,9 +119,6 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     SetRegion1_pt(u_pt,u_pt_size,bit_vector,uctxt);
 
     TracePrintf(0,"DEBUG: done with region1 page table\n");
-
-    TracePrintf(0,"Going to malloc a whole lot...\n");
-    int *e = malloc(90000);
 
 // enable VM
     TracePrintf(0,"DEBUG: Enabling virtual memory\n");
@@ -469,10 +466,8 @@ int SetKernelBrk(void* addr) {
 
         TracePrintf(0,"Kernel orig brk is at %x which is index %d\n",_kernel_orig_brk,index);
 
-        TracePrintf(0,"why is %x equal to 0\n",ptr_bit_vector);
-
         // while the bit vector at index is taken
-        while (*(ptr_bit_vector + index) == PAGE_NOT_FREE) {
+        while (bit_vector[index] == PAGE_NOT_FREE) {
             TracePrintf(0,"index: %d\n",index);
             
             // inc count
