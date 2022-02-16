@@ -31,7 +31,7 @@ void TrapKernelHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
     TracePrintf(0,"We got code: %d\n",user_context->code);
     switch (user_context->code) {
-         case YALNIX_FORK: 
+        case YALNIX_FORK: 
             TracePrintf(0, "kernel calling Fork()\n");
             break;
         case YALNIX_EXEC:
@@ -94,9 +94,9 @@ void TrapClockHandler(void *ctx) {
             TracePrintf(0,"Error, queue_pop failed for either the running or ready queue\n");
         }
 
-        // bookkeeping with queues
-        queue_add(running_q,next_proc);
-        queue_add(ready_q,curr_proc);
+        // bookkeeping with queues, update running and ready
+        queue_add(running_q, next_proc, next_proc->pid);
+        queue_add(ready_q, curr_proc, curr_proc->pid);
 
         // copy user context into current process
         curr_proc->user_context = (UserContext *)ctx;
@@ -108,6 +108,14 @@ void TrapClockHandler(void *ctx) {
         if (rc != 0) {
             TracePrintf(0,"Something went wrong with KernelContext when trying to go from processs %d to %d\n",(int)curr_proc->pid,(int)next_proc->pid);
         }
+
+        // now that we're back, more bookkeeping with queues, change things back now that process A
+        // is running
+        queue_remove(next_proc,next_proc->pid);
+        queue_remove(ready_q,curr_proc->pid);
+
+        queue_add(running_q, curr_proc, curr_proc->pid);
+        queue_add(ready_q, next_proc, next_proc->pid);
 
         // restore ctx
         ctx = (void*)curr_proc->user_context;
