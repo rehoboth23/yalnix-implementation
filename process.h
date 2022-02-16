@@ -34,12 +34,19 @@ typedef struct PCB {
     /*void *kernel_heap_addr;
     void *kernel_text_segment_addr;
     void *kernel_data_segment; */
-    int kernal_stack_pt_index;
-    int kernal_heap_pt_index;
-    int kernal_text_pt_index;
-    int kernal_data_pt_index;
+    int kernel_stack_pt_index;
+    int kernel_heap_pt_index;
+    int kernel_text_pt_index;
+    int kernel_data_pt_index;
+
+    // array of physical frames that belong to this process's stack
+    int kernel_stack_frames[KERNEL_STACK_MAXSIZE/PAGESIZE]; 
 
     int status;                      // identifies whether process is alive or dead} pcb_t;
+
+    // used for Delay()
+    int delay_clock;
+
 } pcb_t;
 // NOTE: I'm not sure about this function, we definitely need to
 // initialize a lot of stuff, but the details are quite hard to

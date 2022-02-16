@@ -96,6 +96,7 @@ enum {
 // initialize pointer to bit vector (an array of integers of size num_of_frame)
 int *ptr_bit_vector;
 
+pte_t *ptr_k_pt;
 
 // kernel brk CHECK: if I change kernel_brk does _kernel_orig_brk change too
 void *kernel_brk;

@@ -36,10 +36,10 @@
 //     /*void *kernel_heap_addr;
 //     void *kernel_text_segment_addr;
 //     void *kernel_data_segment; */
-//     int kernal_stack_pt_index;
-//     int kernal_heap_pt_index;
-//     int kernal_text_pt_index;
-//     int kernal_data_pt_index;
+//     int kernel_stack_pt_index;
+//     int kernel_heap_pt_index;
+//     int kernel_text_pt_index;
+//     int kernel_data_pt_index;
 
 //     int status;                      // identifies whether process is alive or dead
 
@@ -49,6 +49,7 @@ pcb_t *init_process() {
     pcb_t *process = malloc(sizeof(pcb_t));
 
     if (process == NULL) {
+        TracePrintf(0,"Couldn't malloc for init process\n");
         return NULL;
     }
 
@@ -57,6 +58,7 @@ pcb_t *init_process() {
     process->child_pids = NULL;
     process->num_children = 0;
     //process->parent = NULL;
+
     process->user_context = NULL;
     process->kernel_context = NULL;
     process->user_page_table = NULL;
@@ -65,10 +67,17 @@ pcb_t *init_process() {
     process->user_text_pt_index = 0;
     process->user_data_pt_index = 0;
     process->kernel_page_table = NULL;
-    process->kernal_stack_pt_index = 0;
-    process->kernal_heap_pt_index = 0;
-    process->kernal_text_pt_index = 0;
-    process->kernal_data_pt_index = 0;
+    process->kernel_stack_pt_index = 0;
+    process->kernel_heap_pt_index = 0;
+    process->kernel_text_pt_index = 0;
+    process->kernel_data_pt_index = 0;
+    
+    process->delay_clock = 0;
+
+    // initialize process stack frames to 0
+    for (int i = 0; i < KERNEL_STACK_MAXSIZE/PAGESIZE; i++) {
+        process->kernel_stack_frames[i] = 0;
+    }
 
     return process;
 }

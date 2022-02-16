@@ -173,6 +173,8 @@ Ok! How do we get to this goal?
 
 - in `kernel.c` have the queues of processes as globals there
 - when we call sys calls, we get the current process by accessing the global queues, the only process in the running queue needs to be the prrocess that called the syscall
+  - global running queues (defined in kernel.c are) `running_q`, `ready_q`, `blocked_q`, `defunct_q`.
+
 
 
 
@@ -183,8 +185,16 @@ Ok! How do we get to this goal?
     - feeding invalid arguments for *every* queue helper function
     - adding a process to a queue it's already a part of
     - popping and removing from an empty queue
+- 8.3.2, basically copy `template.c` and work through it, following the instructions in there so that we can load a program.
+- 8.3.3 is tiny additional code at the start of `KernelStart`
+- 8.3.4:
+  - clock track handdler triggers a switch between 2 processes
 
 
+### Questions 
+
+- for writing `brk()`, once we know that we have enough virtual addresses free (contiguous virtual space), we allocate these virtual pages to the heap, however, what do we map the each pte to? in other words, how do we find the corresponding page frame number?
+- 
 
 ## Notes
 
@@ -283,7 +293,7 @@ For the diagram above, we are writing the **kernel code** (light gray boxes), an
    1. this is tricky, all our registers and PC and stack pointers need to be changed while using those same registers. We also need to save the userContext of the running process into some data structure, it is restored by passing the UserContext pointer into the trap handler (once in trap handler, hardware will take it from there)
    2. Cause it's tricky, we're provided a way for our kernel code to invoke kernel context-switching functions, which we'll write, in a special context
 
-Kernel code is linked to a provided **kernel library**, this includes routines like `malloc()` and others, for dynamic allocation from the kernal heap.
+Kernel code is linked to a provided **kernel library**, this includes routines like `malloc()` and others, for dynamic allocation from the kernel heap.
 
 ### Zooming in on each transition
 
@@ -321,7 +331,7 @@ Kernel code is linked to a provided **kernel library**, this includes routines l
 
 **Transition 5 and 6: syscalls, traps, exceptions** 
 
-- we need to write the trap handler that switches to kernal mode, handle the syscall, interrupts, exceptions, and return hardware to user mode correctly
+- we need to write the trap handler that switches to kernel mode, handle the syscall, interrupts, exceptions, and return hardware to user mode correctly
   - go to txtbook chapter 2 and 3
   - for the pseudocode of the syscalls below, shall we start at the point where we're already in Kernel mode with our context set up?
   - syscalls, `yalnix.h` defines constant syscall number for each system (the syscall num is in the `UserContext` struct that's passed by the hardware for the trap), yuser.h defines the function prototypes, but the manual has the most info.

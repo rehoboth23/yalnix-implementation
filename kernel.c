@@ -19,6 +19,9 @@ queue_t* ready_q;
 queue_t* blocked_q;
 queue_t* defunct_q;
 
+pte_t *ptr_k_pt;
+int *ptr_bit_vector;
+
 /**
  * @brief initializes our OS: page tables for region0 and region1
  * accepts configurations through cmdline switches, and starts our first
@@ -44,12 +47,15 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     // set up bit vector (to keep track of free frames)
     int bit_vector[num_of_frames];
-    // global pointer point to bit_vector for other functions access
-    ptr_bit_vector = bit_vector;
     // initialize all frames to free
     for (int fr_number = 0; fr_number < num_of_frames; fr_number++) {
         bit_vector[fr_number] = PAGE_FREE;
     }
+
+    // global pointer point to bit_vector for other functions access
+    TracePrintf(0,"HERE PTR BIT VECTOR IS %x\n\nHowever, %p %p\n",&ptr_bit_vector,&bit_vector[0],&bit_vector[510]);
+
+
 
     /* =========== SETUP THE INTERRUPT VECTOR TABLE =========== */
     InterruptVectorTable[TRAP_KERNEL] = TrapKernelHandler;
@@ -82,6 +88,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     // declare kernel page table
     pte_t k_pt[k_pt_size];
+
+    ptr_k_pt = k_pt;
     
     if (k_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for kernel page table\n");
@@ -112,8 +120,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     TracePrintf(0,"DEBUG: done with region1 page table\n");
 
-    // TracePrintf(0,"Going to malloc a whole lot...\n");
-    // int *e = malloc(90000);
+    TracePrintf(0,"Going to malloc a whole lot...\n");
+    int *e = malloc(90000);
 
 // enable VM
     TracePrintf(0,"DEBUG: Enabling virtual memory\n");
@@ -151,9 +159,8 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
  * 
  */
 void DoIdle(void) {
-    int pid = GetPid();
     while(1) {
-        TracePrintf(1,"DoIdle Process - PID : %d\n", pid);
+        TracePrintf(1,"DoIdle Process\n");
         Pause();
     }
 }
@@ -167,7 +174,7 @@ void DoIdle(void) {
  */
 void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
-    //WriteRegister(REG_PTBR0, &kernal_page_table);
+    //WriteRegister(REG_PTBR0, &kernel_page_table);
     WriteRegister(REG_PTBR0, (unsigned)k_pt);
 
     // tell hardware the number of pages in Region0's page table
@@ -213,7 +220,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
         TracePrintf(0,"\t\tat address %x\n",pt_index << PAGESHIFT);
     // .text
         // if page table index is between .text's virtual page number range
-        if ((pt_index >= text_vp_lowest - vp0) && (pt_index < text_vp_highest - vp0)) { // FYI changed from kernal_data_start to _kernal_data_start
+        if ((pt_index >= text_vp_lowest - vp0) && (pt_index < text_vp_highest - vp0)) { // FYI changed from kernel_data_start to _kernel_data_start
 
             // create pte with .text permissions
             pte_t entry;
@@ -460,8 +467,13 @@ int SetKernelBrk(void* addr) {
 
         int num_pages_above_orig_brk = 0;
 
+        TracePrintf(0,"Kernel orig brk is at %x which is index %d\n",_kernel_orig_brk,index);
+
+        TracePrintf(0,"why is %x equal to 0\n",ptr_bit_vector);
+
         // while the bit vector at index is taken
-        while (ptr_bit_vector[index] == PAGE_NOT_FREE) {
+        while (*(ptr_bit_vector + index) == PAGE_NOT_FREE) {
+            TracePrintf(0,"index: %d\n",index);
             
             // inc count
             num_pages_above_orig_brk++;
