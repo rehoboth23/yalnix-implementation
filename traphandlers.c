@@ -17,7 +17,7 @@ extern queue_t* ready_q;
 extern queue_t* blocked_q;
 extern queue_t* defunct_q;
 
-extern int *ptr_bit_vector;
+extern int *bit_vector;
 
 enum {
     // default values
@@ -455,8 +455,8 @@ int KernelBrk(void *addr) {
     // we check the bit vector AND the user page table valid bit, if any of them
     // are not free, error.
     for (curr_heap_index ; curr_heap_index < addr_index ; curr_heap_index++) {
-        if (ptr_bit_vector[curr_heap_index + user_pt_base_index] == PAGE_NOT_FREE) {
-            TracePrintf(0,"ERROR, bit vector claims user pt index %d (which is at ptr_bit_vector index %d) is taken\n",curr_heap_index,curr_heap_index+user_pt_base_index);
+        if (bit_vector[curr_heap_index + user_pt_base_index] == PAGE_NOT_FREE) {
+            TracePrintf(0,"ERROR, bit vector claims user pt index %d (which is at bit_vector index %d) is taken\n",curr_heap_index,curr_heap_index+user_pt_base_index);
             return ERROR;
         }
         else if (curr_proc->user_page_table[curr_heap_index].valid == PAGE_NOT_FREE) {
@@ -472,7 +472,7 @@ int KernelBrk(void *addr) {
     for (curr_heap_index = curr_proc->user_heap_pt_index ; curr_heap_index < addr_index ; curr_heap_index++) {
         
         // update bit_vector
-        ptr_bit_vector[curr_heap_index + user_pt_base_index] = PAGE_FREE;
+        bit_vector[curr_heap_index + user_pt_base_index] = PAGE_FREE;
 
         // update page table
         curr_proc->user_page_table[curr_heap_index].valid = PAGE_NOT_FREE;

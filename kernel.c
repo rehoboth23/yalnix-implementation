@@ -13,6 +13,7 @@
 #include "traphandlers.h"
 #include "kernel.h"
 #include "contextswitch.h"
+#include "loadprogram.h"
 
 
 queue_t* running_q;
@@ -37,7 +38,6 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Entering KernelStart\n");
 
     // if kernel_brk hasn't been changed by SetKernelBrk
-
     // here we haven't called malloc yet, so we can set kernel_brk to orig_brk  
     kernel_brk = _kernel_orig_brk;
     
@@ -117,6 +117,7 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
         TracePrintf(0,"ERROR, malloc failed for user page table\n");
     }
     memset(u_pt, 0, sizeof(pte_t) * u_pt_size);
+
     SetRegion1_pt(u_pt,u_pt_size,bit_vector,uctxt);
 
     TracePrintf(0,"DEBUG: done with region1 page table\n");
@@ -125,28 +126,125 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Enabling virtual memory\n");
     WriteRegister(REG_VM_ENABLE,VM_ENABLED);
 
-// ============================= //
-//   SET UP IDLEPCB AND DOIDLE   //
-// ============================= //
+
+// ================== //
+//   SET UP IDLEPCB   //
+// ================== //
+    TracePrintf(0, "DEBUG: Initializing Idle Proccess\n");
     pcb_t *idlePCB = init_process();
     if (idlePCB == NULL) {
         // DO SOME ERROR HANDLING
+        TracePrintf(0,"ERROR: init_process failed!\n");
+        Halt();
     }
     idlePCB->user_context = uctxt;
     idlePCB->user_context->pc = DoIdle;
     // idlePCB's stack has been set while setting up region1's page table
     TracePrintf(0,"sp = %x, pc = %x\n",idlePCB->user_context->sp,idlePCB->user_context->pc);
 
+    // debugging, just to see where pc is in pagetable
     void* addr = (void*) DOWN_TO_PAGE(idlePCB->user_context->pc);
     int vpn = ((int)addr >> PAGESHIFT) - (VMEM_0_BASE >> PAGESHIFT);
     TracePrintf(0,"pc is at vpn %x\n",vpn);
-
-    idlePCB->kernel_context = NULL;
+    
     idlePCB->pid = helper_new_pid((void *) ReadRegister(REG_PTBR1));
+
+    
     idlePCB->kernel_page_table = k_pt;
     idlePCB->user_page_table = u_pt;
-    /* =================== idle =================== */
-    TracePrintf(0, "Debug: Initializing Idle Proccess\n");
+
+// ================== //
+//   SET UP INITPCB   //
+// ================== //
+
+    TracePrintf(0,"Now that idlePCB has been set up, setting up initPCB...\n");
+
+    pcb_t *initPCB = init_process();
+    if (initPCB == NULL) {
+        // DO SOME ERROR HANDLING
+        TracePrintf(0,"ERROR: init_process failed!\n");
+        Halt();
+    }
+    // user context
+    initPCB->user_context = uctxt;
+
+    // PID
+    initPCB->pid = helper_new_pid((void *) ReadRegister(REG_PTBR1));
+
+    // user page table
+    // initPCB->user_page_table = malloc(sizeof(pte_t) * u_pt_size);
+    // if (initPCB->user_page_table == NULL) {
+    //     TracePrintf(0,"ERROR: initPCB malloc failed!\n");
+    // }
+    initPCB->user_page_table = u_pt;
+    // set up all invalid page table
+    memset(initPCB->user_page_table,0,sizeof(pte_t) * u_pt_size);
+
+    // kernel page table
+    initPCB->kernel_page_table = malloc(sizeof(pte_t) * k_pt_size);
+    if (initPCB->kernel_page_table == NULL) {
+        TracePrintf(0,"ERROR: initPCB malloc failed!\n");
+    }
+    memcpy(initPCB->kernel_page_table,k_pt,sizeof(pte_t) * k_pt_size);
+
+
+    int count = 0;
+
+    // get stack frames for initPCB
+    // start looking from top of kernel stack downwards
+    for (int i = (VMEM_1_BASE >> PAGESHIFT) - 1; i > VMEM_0_BASE >> PAGESHIFT; i--) {
+        
+        // if there's a free frame
+        if (bit_vector[i] == PAGE_FREE) {
+            TracePrintf(0,"Found a free frame for initPCB kernel stack at %d\n",i);
+
+            // mark as not free, and save the physical frame number
+            bit_vector[i] = PAGE_NOT_FREE;
+            initPCB->kernel_stack_frames[count] = i;
+            // inc count
+            count++;
+
+        }
+        // if we've allocated enough stack frames
+        if (count >= KERNEL_STACK_MAXSIZE/PAGESIZE) {
+            break;
+        }
+    }
+    
+// ========== //
+//   QUEUES   //
+// ========== //
+
+    TracePrintf(0,"Setting up global queues...\n");
+    
+    if (queue_init(running_q) != 0) {
+        TracePrintf(0,"running q init failed\n");
+    }
+
+    if (queue_init(ready_q) != 0) {
+        TracePrintf(0,"ready q init failed\n");
+    }
+
+    if (queue_init(blocked_q) != 0) {
+        TracePrintf(0,"blocked q init failed\n");
+    }
+
+    if (queue_init(defunct_q) != 0) {
+        TracePrintf(0,"defunct q init failed\n");
+    }
+
+    TracePrintf(0,"Adding idle to running queue and init to ready queue\n");
+    queue_add(running_q,idlePCB,idlePCB->pid);
+    queue_add(ready_q,initPCB,initPCB->pid);
+
+    TracePrintf(0,"DEBUG: Calling KCCopy...\n");
+    int rc = KernelContextSwitch(KCCopy,initPCB,NULL);
+
+    TracePrintf(0,"DEBUG: Calling load program...\n");
+
+    LoadProgram("init", cmd_args, initPCB);
+
+    TracePrintf(0,"Back from KCCopy! Set up initPCB with pid %d\n",initPCB->pid);
 
     TracePrintf(0,"Exiting KernelStart...\n");  
 }
@@ -363,7 +461,6 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
     u_pt[u_pt_index] = entry;
     bit_vector[u_pt_index + vp0] = PAGE_NOT_FREE;
 
-
     TracePrintf(0,"Index of stack pointer is %x\n", (int)uctxt->sp >> PAGESHIFT );
     // ================================
     
@@ -422,7 +519,7 @@ int SetKernelBrk(void* addr) {
 
         // check if virtual addresses between current brk and given address are taken
         for (index ; index < addr_index; index++) {
-            if (ptr_bit_vector[index] == PAGE_NOT_FREE) {
+            if (bit_vector[index] == PAGE_NOT_FREE) {
                 TracePrintf(0, "ERROR, at least 1 page between kernel brk and new brk has already been taken\n");
                 return ERROR;
             }
@@ -436,7 +533,7 @@ int SetKernelBrk(void* addr) {
         for (index ; index < addr_index ; index++) {
 
             // update bit_vector
-            ptr_bit_vector[index] = PAGE_NOT_FREE;
+            bit_vector[index] = PAGE_NOT_FREE;
 
             // update page table
             pte_t entry;

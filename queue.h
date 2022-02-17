@@ -21,7 +21,7 @@ typedef struct Queue queue_t;
  *  - 0 if succesful 
  *  - 1 otherwise
  */
-int queue_init(queue_t **queue);
+int queue_init(queue_t *queue);
 
 /**
  * @brief sets the id of a queue

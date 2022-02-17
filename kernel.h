@@ -87,8 +87,8 @@ enum {
 
 
     
-// initialize pointer to bit vector (an array of integers of size num_of_frame)
-int *ptr_bit_vector;
+// // initialize pointer to bit vector (an array of integers of size num_of_frame)
+// int *ptr_bit_vector;
 
 pte_t *ptr_k_pt;
 

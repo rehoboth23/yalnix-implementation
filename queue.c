@@ -68,13 +68,15 @@ typedef struct Queue {
  *  - 0 if succesful 
  *  - 1 otherwise
  */
-int queue_init(queue_t **queue) {
-    *queue = malloc(sizeof(queue_t));
-    if ( (*queue) == NULL ) return 1;
-    (*queue)->id = 0; 
-    (*queue)->size = 0; 
-    (*queue)->head = NULL; 
-    (*queue)->tail = NULL; 
+int queue_init(queue_t *queue) {
+    queue = malloc(sizeof(queue_t));
+    if ( queue == NULL ) {
+        return 1; 
+        }
+    queue->id = 0; 
+    queue->size = 0; 
+    (queue)->head = NULL; 
+    (queue)->tail = NULL; 
     return 0;
 }
 

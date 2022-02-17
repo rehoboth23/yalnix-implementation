@@ -191,6 +191,15 @@ Ok! How do we get to this goal?
   - clock track handdler triggers a switch between 2 processes
 
 
+
+ok ok 
+
+- when setting up initPCB, we put new frames into our thing just by doing a good'ol loop through bitvector 
+  - user page table is not entirely invalid, it maps a single stack frame
+- KCCopy should copy kernel stack info into the right kernel stack frames
+- Test load prrogram
+
+
 ### Questions 
 
 - for writing `brk()`, once we know that we have enough virtual addresses free (contiguous virtual space), we allocate these virtual pages to the heap, however, what do we map the each pte to? in other words, how do we find the corresponding page frame number?
