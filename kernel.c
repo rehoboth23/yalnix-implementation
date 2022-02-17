@@ -1,5 +1,5 @@
 /*
- *  boot.c
+ *  kernel.c
  *  
  *  contains the KernelStart function, boots and intializes
  *  our OS and its first process
@@ -12,6 +12,7 @@
 #include <yalnix.h>
 #include "traphandlers.h"
 #include "kernel.h"
+#include "contextswitch.h"
 
 
 queue_t* running_q;

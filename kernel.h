@@ -61,12 +61,6 @@ void DoIdle(void);
  */
 int SetKernelBrk(void* addr);
 
-/**
- * @brief 
- * 
- */
-void KCCopy();
-
 enum {
     // default values
     DEFAULT_TRACE_LEVEL   =    1,

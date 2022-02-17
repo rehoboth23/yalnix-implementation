@@ -31,6 +31,11 @@ Implementing `Delay()`
 
 
 
+## Questions
+
+- for Brk(), when we allocate virtual addresses to the user's heap, how do we decide which page frames to use? do we just loop through the bit vector and take the first free one?
+- How would u store info on kernel stack frame? since the max size is 2 im doing an page frame index array, So it just stores where the 2 stack virtual pages go to.
+
 ## Testing!
 
 Tested `Brk()`, `GetPid()`, `Delay`.

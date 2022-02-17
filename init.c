@@ -1,4 +1,8 @@
-
+/*
+ *  init.c
+ *  
+ *  contains a while loop, basically idle.
+ */
 #include "yalnix.h"
 #include "ylib.h"
 #include "yuser.h"
