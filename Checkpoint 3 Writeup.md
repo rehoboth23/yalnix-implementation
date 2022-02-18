@@ -11,7 +11,7 @@ We're currently using a workaround instead of our ready and running queues to sw
 
 
 
-This is because the queue data structure is still acting abnormally.
+This is because we **still have bugs in our queue data struct** and its helper functions. So we couldn't implement things that other members already coded.
 
 
 
@@ -20,9 +20,11 @@ This is because the queue data structure is still acting abnormally.
 - For KernelContextSwitches, we created the new files `contextswitch.c` and `contextswitch.h` which store the functions `KCCopy` and `KCSwitch`, its behavior is as specified in the manual
 - For 8.3.2, we copied `template.c` to create a new file: `load.c`
 - For 8.3.3, we added an if condition at the start of `KernelStart` that sets a variable `prog` to "init" if there's no input, otherwise it's set to whatever cmdline input there is. For now, we 
-- For 8.3.4, the `TrapClockHandler` will check our global ready queue `ready_q` to see if there are processes that we can switch to, if so, then it calls `KernelContextSwitch`, passing in `KCSwitch` and the two processes it's swapping between.
+- For 8.3.4, KCSwitch is in `contextswitch.c` and works.
+  - the `TrapClockHandler` will check our global ready queue `ready_q` to see if there are processes that we can switch to, if so, then it calls `KernelContextSwitch`, passing in `KCSwitch` and the two processes it's swapping between. <-- This is in `not-implemented-traphandlers.c`. 
   - so we added to `TrapClockHandler` and `KCSwitch` to allow this to work
-- **We have testing ready but haven't reached the point where we can do it.**
+
+- **We have testing ready but haven't reached the point where we can do it.** 
 
 
 
@@ -66,6 +68,10 @@ So everything is in the same directory, `make` and `./yalnix -W` should do the t
 ## Testing!
 
 Although we didn't reach a stage where we took in testing functions, we wrote test programs so that once the functionality has been included, we can test the sys calls that we've written. These tests are in `tests`.
+
+
+
+To test what we've implemented so far, `./yalnix -W` will show that we're successfully switching contexts between idle and init.
 
 
 
