@@ -5,15 +5,9 @@
  *  this'll be the helper-functions for our running, ready, defunct, and blocked queues
 */
 
-#include "queue.h"
-#include <ylib.h>
-
-/*
- *  queue.c
- *  
- *  holds functions that handle queues, an array of pointers to processes
- *  this'll be the helper-functions for our running, ready, defunct, and blocked queues
-*/
+#include "hardware.h"
+#include "ylib.h"
+#include "process.h"
 
 /**
  * @brief node in a queue
@@ -68,15 +62,13 @@ typedef struct Queue {
  *  - 0 if succesful 
  *  - 1 otherwise
  */
-int queue_init(queue_t *queue) {
-    queue = malloc(sizeof(queue_t));
-    if ( queue == NULL ) {
-        return 1; 
-        }
-    queue->id = 0; 
-    queue->size = 0; 
-    (queue)->head = NULL; 
-    (queue)->tail = NULL; 
+int queue_init(queue_t **queue) {
+    *queue = malloc(sizeof(queue_t));
+    if ( (*queue) == NULL ) return 1;
+    (*queue)->id = 0; 
+    (*queue)->size = 0; 
+    (*queue)->head = NULL; 
+    (*queue)->tail = NULL; 
     return 0;
 }
 
@@ -112,7 +104,7 @@ int queue_get_id(queue_t *queue) {
  *  - 0 if success
  *  - 1 if fail
  */
-int queue_add(queue_t *queue, pcb_t *data, int  id) {
+int queue_add(queue_t *queue, void *data, int  id) {
     // ensure all the args are valid
     if (queue == NULL || data == NULL) return 1;
     
@@ -142,24 +134,18 @@ int queue_add(queue_t *queue, pcb_t *data, int  id) {
  * - data with id in queue if success
  */
 void *queue_remove(queue_t *queue, int id) {
-
     if (queue == NULL) return NULL; // if arg is in valid
     if (queue->size == 0) return NULL;  // if queue is empty
-
     qnode_t *node = queue->head;    // get queue head
     void *data = NULL;  // return value
-
     if (node->id == id) { // if head is what we are looking for
         data = node->data;  // get node data
-
         if (queue->size > 1) {  // if queue has more than 1 item
             queue->head = node->next;   // set head to next of head
-
         } else {    // otherwisw queue conotains only head
             queue->head = NULL; // set queue head to null
             queue->tail = NULL; // set queue tail to null
         }
-
         qnode_delete(node, NULL);   // delete node withouth deleting node data
     }
 
@@ -171,15 +157,12 @@ void *queue_remove(queue_t *queue, int id) {
         if (node->next->id == id) { // if next node is what we are looking for
             data = node->next->data;    // get node data
             qnode_t *todel = node->next; // keep reference to node next
-
             if (i + 1 == queue->size) { // if next node is tail (last node)
                 queue->tail = NULL; // set queue tail to null
                 node->next = NULL;  // set node next to null
-
             } else {    // otherwise if node next is not last node
                 node->next = todel->next;  // set node next to next of node next
             }
-
             qnode_delete(todel, NULL); // delete node withouth deleting node data
             break;
         }
@@ -199,16 +182,12 @@ void *queue_remove(queue_t *queue, int id) {
  * @return void * pointer to data at front of queue
  */
 void *queue_pop(queue_t *queue) {
-
     if (queue == NULL) return NULL;
     if (queue->size == 0) return NULL;
-
     qnode_t *node = queue->head;
-
     if (queue->size == 1) { // if queue has only one item
         queue->head = NULL; // set queue head as null
         queue->tail = NULL; // set queue tail as null
-
     } else queue->head = node->next;
     
     void *data = node->data; // get data from node
@@ -253,7 +232,7 @@ int queue_size(queue_t *queue) {
  * @param queue queue to delete 
  * @param dataDelete function pointer to a function to delete data in queue
  */
-void queue_delete(queue_t *queue, void (*dataDelete) (void *data)) {
+void queue_delete(queue_t *queue, void (*dataDelete) (pcb_t *data)) {
     if (queue != NULL) {
         for (qnode_t *node = queue->head; node != NULL;) {
             qnode_t *next = node->next;
@@ -273,12 +252,9 @@ void queue_delete(queue_t *queue, void (*dataDelete) (void *data)) {
  * - new queue node otherwise
  */
 static qnode_t *qnode_init(int id, pcb_t *data) {
-
     if (data == NULL) return NULL;
-
     qnode_t *node = malloc(sizeof(qnode_t));
     if (node == NULL) return NULL;
-
     node->id = id;
     node->data = data;
     node->next = NULL;

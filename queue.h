@@ -1,11 +1,20 @@
-/*
- *  queue.h
- *  
- *  holds functions that handle queues, an array of pointers to processes
- *  this'll be the helper-functions for our running, ready, defunct, and blocked queues
-*/
+/**
+ * @file queue.h
+ * @author NALAOS Group
+ * @brief holds functions that handle queues, an array of pointers to processes
+ *      this'll be the helper-functions for our running, ready, defunct, and blocked queues
+ * @version 0.1
+ * @date 2022-02-15
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+#ifndef __QUEUE_H_
+#define __QUEUE_H_
 
 #include "process.h"
+
 
 /**
  * @brief general purpose Queue struct for yalnix OS
@@ -21,7 +30,7 @@ typedef struct Queue queue_t;
  *  - 0 if succesful 
  *  - 1 otherwise
  */
-int queue_init(queue_t *queue);
+int queue_init(queue_t **queue);
 
 /**
  * @brief sets the id of a queue
@@ -98,4 +107,6 @@ int queue_size(queue_t *queue);
  * @param queue queue to delete 
  * @param dataDelete function pointer to a function to delete data in queue
  */
-void queue_delete(queue_t *queue, void (*dataDelete) (void *data));
+void queue_delete(queue_t *queue, void (*dataDelete) (pcb_t *data));
+
+#endif

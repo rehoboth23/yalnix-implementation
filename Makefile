@@ -10,14 +10,14 @@
 K_SRC_DIR = .
 
 # What are the kernel c and include files?
-K_SRCS = kernel.c traphandlers.c process.c queue.c contextswitch.c loadprogram.c
-K_INCS = kernel.h traphandlers.h process.h queue.h contextswitch.h loadprogram.h
+K_SRCS = kernel.c traphandlers.c process.c queue.c contextswitch.c load.c
+K_INCS = kernel.h traphandlers.h process.h queue.h contextswitch.h load.h include.h
 
 # Where's your user source?
 U_SRC_DIR = .#./test
 
 # What are the user c and include files?
-U_SRCS = init.c
+U_SRCS = init.c idle.c
 U_INCS = 
 
 

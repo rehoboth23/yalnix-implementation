@@ -4,129 +4,122 @@
  *  holds the functions KCCopy and KCSwitch
 */
 
-
 #include <hardware.h>
 #include <ykernel.h>
 #include "process.h"
 
-extern pte_t *k_pt;
-extern int *bit_vector;
+extern int *ptr_bit_vector;
 
-enum {
-    // default values
-    PAGE_FREE             =    1,
-    PAGE_NOT_FREE         =    0,
-    VALID_FRAME           =    1,
-    INVALID_FRAME         =    0,
+/**
+ * @brief to allow for future context switches, clones kernel stack and kernel context
+ * 
+ * @param kctxt 
+ * @param currPCB 
+ * @param newPCB 
+ * @return KernelContext* 
+ */
+KernelContext *KCCopy(KernelContext *kc_in, void *pcb, void *notUsed) {
+    TracePrintf(0,"Entered KCCopy!\n");
 
-    // permissions for page table, in order X W R -- NOT R W X >:(
-    
-    
-    X_NO_W_R              =    5,      // read allowed, no write, exec allowed
-    NO_X_NO_W_NO_R        =    0,      // no read, no write, no execUserContext 
-    X_W_R                 =    7,      // read allowed, write allowed, exec allowed
-    NO_X_W_R              =    3,      // read allowed, write allowed, no exec
-    NO_X_NO_W_R           =    1
-};
-
-KernelContext *KCCopy(KernelContext *kctxt, pcb_t *new_pcb_ptr, void *not_used) {
-
-    if (kctxt == NULL || new_pcb_ptr == NULL) {
-        TracePrintf(0,"KCCopy provided NULL arguments!\n");
+    if (kc_in == NULL || pcb == NULL) {
+        TracePrintf(0,"We got null kernel context and/or null pcb\n");
         return NULL;
     }
 
+    
+    pcb_t *currPCB = (pcb_t *) pcb;
+
     // copy kernel context
-    KernelContext *new_kctxt = malloc(sizeof(KernelContext));
-    if (new_kctxt == NULL){
-        TracePrintf(0,"in KCCopy, malloc failed\n");
-    }
-    memcpy(new_kctxt,kctxt,sizeof(KernelContext));
+    memcpy(&(currPCB->kernel_context), kc_in, sizeof(KernelContext));
 
+    // lowest valid stack virtual page number
+    int kernel_stack_base = ( (int)KERNEL_STACK_BASE >> PAGESHIFT );
+    
+    // first invalid virtual page above stack
+    int kernel_base = (int)VMEM_0_BASE >> PAGESHIFT;
 
-// allocate some dummy pages
-    // start looking from top of kernel stack downwards
-    int count = 0;
-    for (int i = (VMEM_1_BASE >> PAGESHIFT) - 1; i > VMEM_0_BASE >> PAGESHIFT; i--) {
-        
-        // if there's a free frame
-        if (bit_vector[i] == PAGE_FREE) {
-            TracePrintf(0,"Found a free frame for dummy page at %d\n",i);
+    
+    pte_t *_dst = currPCB->kernel_stack_pt;
 
-            // mark as not free, and save the physical frame number
-            bit_vector[i] = PAGE_NOT_FREE;
+    // src is region0 page table
+    pte_t *_src = ( pte_t *) ReadRegister(REG_PTBR0);  
+    int allocated = 0;
 
+    // looping through kernel stack
+    for (int index = kernel_stack_base; index >= kernel_base && allocated < KERNEL_STACK_SIZE; index--) {
+        // if(_src[index])
 
-            TracePrintf(0,"KCCopy dummy page: vpn %d points to pfn %d\n",i,new_pcb_ptr->kernel_stack_frames[count]);
-            // set up dummy page table entry
-            pte_t entry;
-            entry.valid = VALID_FRAME;
-            entry.prot = NO_X_W_R;
-            entry.pfn = new_pcb_ptr->kernel_stack_frames[count];
+        // if we find a free page
+        if (ptr_bit_vector[index] == PAGE_FREE) {
 
-            k_pt[i] = entry;
-            // 
-            
-            // copy contents of stack page to dummy page
-            TracePrintf(0,"Copying from addr %x to %x...\n",KERNEL_STACK_LIMIT - (count+1) * PAGESIZE,i << PAGESHIFT);
-            memcpy((void*)(i << PAGESHIFT),(void *)(KERNEL_STACK_LIMIT - (count+1) * PAGESIZE),PAGESIZE);
+            // setting up a dummy page table
+            _src[index].pfn = _dst[allocated].pfn;
+            _src[index].valid = VALID_FRAME;
+            _src[index].prot = NO_X_W_R;
 
-            // inc count, which indexes new pcb's kernel stack frame
-            count++;
+            // copy data
+            void *to = (void *) (index << PAGESHIFT);
+            void *from = (void *) ( (kernel_stack_base + allocated) << PAGESHIFT );
+            TracePrintf(0, "d_index ->%d s_index -> %d\n", _dst[allocated].pfn, kernel_stack_base + allocated);
+            // WriteRegister(REG_TLB_FLUSH, (unsigned int) to);
+            memcpy(to, from, PAGESIZE);
 
-            TracePrintf(0,"new process's page table at vpn %d points to pfn %d\n",(KERNEL_STACK_LIMIT-count * PAGESIZE) >> PAGESHIFT,entry.pfn);
-            // create new process's page table, make kernel stack region point to our specific page frame
-            new_pcb_ptr->kernel_page_table[(KERNEL_STACK_LIMIT - count * PAGESIZE) >> PAGESHIFT] = entry;
-            
-            // flush stack in case
-            WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_KSTACK);
+            // clear dummy page table entry
+            _src[index].pfn = 0;
+            _src[index].valid = 0;
+            _src[index].prot = 0;
 
-            // flush region1 page table, we copied it earlier
-            WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0);
-            
-            //deactivate dummy page
-            TracePrintf(0,"Deactivating dummy page...\n");
-            k_pt[i].valid = 0;
-        }
-        // if we've allocated enough stack frames
-        if (count >= KERNEL_STACK_MAXSIZE/PAGESIZE) {
-            break;
+            // move onto next page in stack (there's 2 total)
+            allocated++;
         }
     }
+    // after this, flush region0
+    WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
 
-
-    return kctxt;
+    return kc_in;
 }
 
-KernelContext *KCSwitch(KernelContext *kc_in,void *curr_pcb_p, void *next_pcb_p) {
+/**
+ * @brief switches from pcb1 to pcb2
+ * 
+ * @param kc_in kernel context
+ * @param pcb1 
+ * @param pcb2 
+ * @return KernelContext* 
+ */
+KernelContext *KCSwitch(KernelContext *kc_in, void *pcb1, void *pcb2) {
 
-    TracePrintf(0,"KCSwitch called! curr process id: %d\n",(int)((pcb_t *)curr_pcb_p)->pid);
+    pcb_t *curr = (pcb_t *) pcb1;
+    pcb_t *next = (pcb_t *) pcb2;
 
-// copy kernel context to old pcb
+    TracePrintf(0,"KCSwitch called! curr process id: %d\n",(int)(curr->pid));
+
+    // copy kernel context
     KernelContext tmp = *kc_in;
-    ((pcb_t *)curr_pcb_p)->kernel_context = &tmp;
+    memcpy(&(curr->kernel_context), kc_in, sizeof(KernelContext));
 
-// change region 0 stack mappings to that for new PCB
+    pte_t *k_pt = (pte_t *) ReadRegister(REG_PTBR0);
 
 
     // iterate through next_pcb's kernel stack and update region0 pagetable
-    int stack_index = (int)KERNEL_STACK_BASE >> PAGESHIFT;
-    int counter = 0;
+    int stack_base = ( (int) KERNEL_STACK_BASE >> PAGESHIFT );
+
 
     // change the pte to point to the same stack framme
-    for (stack_index ; stack_index < KERNEL_STACK_LIMIT >> PAGESHIFT; stack_index++ ) {
-
-        TracePrintf(0,"in KCSwitch: changing kernel page table from %d to %d...\n",k_pt[stack_index].pfn, ((pcb_t *)next_pcb_p)->kernel_stack_frames[counter]);
-        
-        // page frame number of in page table for kernel stack is set to process B's frame
-        (k_pt[stack_index]).pfn = ((pcb_t *)next_pcb_p)->kernel_stack_frames[counter];
-        counter++;
+    for (int i = 0 ; i < KERNEL_STACK_SIZE; i++ ) {
+        TracePrintf(0, "p_i -> %d k_i -> %d p_pfn -> %d k_pfn -> %d \n", i, stack_base + i,  next->kernel_stack_pt[i].pfn, k_pt[stack_base + i].pfn);
+        k_pt[stack_base + i].pfn = next->kernel_stack_pt[i].pfn;
+        k_pt[stack_base + i].prot = next->kernel_stack_pt[i].prot;
+        k_pt[stack_base + i].valid = next->kernel_stack_pt[i].valid;
     }
+    // Pause();
     
+    WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
+
+    // update ptbr0
+    WriteRegister(REG_PTBR0, (unsigned int) k_pt);
     TracePrintf(0,"done with KCSwitch, returning next_pcb kernel context\n");
 
     // return pointer to KernelContext in new PCB
-    return ((pcb_t *)next_pcb_p)->kernel_context;
+    return &(next->kernel_context);
 }
-
-

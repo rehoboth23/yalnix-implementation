@@ -9,14 +9,15 @@
 
 #include <ykernel.h>
 #include "pipe.h"
-#include "queue.h"
 
+#ifndef __TRAPHANDLERS_H_
+#define __TRAPHANDLERS_H_
 
 /**
  * @brief Interrupt Vector Table to map traps to functions
  * 
  */
-void (*InterruptVectorTable[TRAP_VECTOR_SIZE]) (void *ctx);
+extern void (*InterruptVectorTable[TRAP_VECTOR_SIZE]) (void *ctx);
 
 /**
  * @brief Handler in interrupt vector table for TRAP_KERNEL
@@ -73,3 +74,6 @@ void TrapTTYTransmitHandler(void *ctx);
  * @param ctx user context from which the trap occured
  */
 void TrapDiskHandler(void *ctx);
+
+
+#endif

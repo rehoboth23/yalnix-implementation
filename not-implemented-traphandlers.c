@@ -8,12 +8,24 @@
 */
 
 #include <ykernel.h>
-#include "kernel.h"
-#include "traphandlers.h"
 #include "pipe.h"
+#include "queue.h"
+#include "contextswitch.h"
 
-void (*InterruptVectorTable[TRAP_VECTOR_SIZE]) (void *ctx);
+extern queue_t* running_q;
+extern queue_t* ready_q; 
+extern queue_t* blocked_q;
+extern queue_t* defunct_q;
 
+extern int *bit_vector;
+
+enum {
+    // default values
+    PAGE_FREE             =    1,
+    PAGE_NOT_FREE         =    0,
+    VALID_FRAME           =    1,
+    INVALID_FRAME         =    0
+};
 
 // ********************************************************** 
 //                      Trap Handlers
@@ -28,7 +40,7 @@ void TrapKernelHandler(void *ctx) {
     UserContext *user_context = (UserContext *) ctx;
     TracePrintf(0,"We got code: %d\n",user_context->code);
     switch (user_context->code) {
-         case YALNIX_FORK: 
+        case YALNIX_FORK: 
             TracePrintf(0, "kernel calling Fork()\n");
             break;
         case YALNIX_EXEC:
@@ -74,36 +86,102 @@ void TrapKernelHandler(void *ctx) {
  * @param ctx context from which the trap occured
  */
 void TrapClockHandler(void *ctx) {
-    UserContext *uctxt = (UserContext *) ctx;
-    // pcb_t *active = initPCB->status == 0 ? idlePCB : initPCB;
-    pcb_t* active;
-    pcb_t* next;
+    TracePrintf(0,"==Trap Clock Handler called!==\n");
 
-    // current way of checking which process is running is by checking
-    // a flag in the pcb, status. If 0, then idle is running, otherwise init
-    if (initPCB->status == 0) {
-        active = idlePCB;
-        next = initPCB;
-
-    } else {
-        active = initPCB;
-        next = idlePCB;
+    // check running queue
+    int size = queue_size(running_q);
+    TracePrintf(0,"\tRunning queue size %d\n",size);
+    if (size != 1) {
+        TracePrintf(0,"ERROR in GetPid, how do we have a running queue of size %d?\n",size);
+        Halt();
     }
 
-    // pcb_t *next = initPCB->status == 0 ? initPCB : idlePCB;
+    // get current proc, add it back to running queue as well
+    pcb_t *curr_proc = queue_pop(running_q);
+    queue_add(running_q,curr_proc,curr_proc->pid);
+
+    // check blocked queue, decrement if any are delayed
+    size  = queue_size(blocked_q);
+    TracePrintf(0,"\tBlocked queue size %d\n",size);
+    if (size != 0) {
+        // for each blocked process
+        for (int index = 0 ; index < size ; index++ ) {
+
+            // decrement the delay clock if it isn't 0
+            pcb_t *blocked_proc = queue_pop(blocked_q);
+            if (blocked_proc->delay_clock > 0) {
+
+                TracePrintf(0,"\tDecrementing delay clock for process %d\n",blocked_proc->pid);
+                blocked_proc->delay_clock--;
+                
+                // add it back to blocked queue
+                queue_add(blocked_q,blocked_proc,blocked_proc->pid);
+            }
+            // move it to ready queue if its delay clock is 0
+            else if (blocked_proc->delay_clock == 0) {
+                TracePrintf(0,"\tMoving process %d to ready queue\n",blocked_proc->pid);
+                queue_add(ready_q,blocked_proc,blocked_proc->pid);
+            }
+            // otherwise error
+            else { 
+                TracePrintf(0,"\tHow did we get a delay clock of %d for process %d\n",blocked_proc->delay_clock,(int)blocked_proc->pid);
+                queue_add(blocked_q,blocked_proc,blocked_proc->pid);
+            }
+        }
+    }
+
+    // check ready queue, if there are other processes ready
+    size = queue_size(ready_q);
+    TracePrintf(0,"\tReady queue size %d\n",size); 
+
+    // if there are processes on ready queue
+    if (size >= 1) {
+        TracePrintf(0,"\tThere are processes in the ready queue\n");
+
+        pcb_t *next_proc = queue_pop(ready_q);
+
+        // check that we successfully got the process
+        if ((curr_proc == NULL) || (next_proc == NULL)) {
+            TracePrintf(0,"Error, queue_pop failed for either the running or ready queue\n");
+        }
+
+        // bookkeeping with queues, update running and ready
+        queue_add(running_q, next_proc, next_proc->pid);
+        queue_add(ready_q, curr_proc, curr_proc->pid);
+
+        // copy user context into current process
+        curr_proc->user_context = (UserContext *)ctx;
+
+        // invoke KCSwitch
+        int rc = KernelContextSwitch(KCSwitch,curr_proc,next_proc);
+
+        // check return code
+        if (rc != 0) {
+            TracePrintf(0,"ERROR: Something went wrong with KernelContext when trying to go from processs %d to %d\n",(int)curr_proc->pid,(int)next_proc->pid);
+        }
+
+        // now that we're back, more bookkeeping with queues, change things back now that process A
+        // is running
+        queue_remove(running_q,next_proc->pid);
+        queue_remove(ready_q,curr_proc->pid);
+
+        queue_add(running_q, curr_proc, curr_proc->pid);
+        queue_add(ready_q, next_proc, next_proc->pid);
+
+        // restore ctx
+        ctx = (void*)curr_proc->user_context;
+    }
+    // if no other processes ready, check if blocked, then do nothing
+    else {
+        TracePrintf(0,"\tNo other processes detected. Will check if running process is blocked\n");
+
+        // check clock ticks of current process
+        if (curr_proc->delay_clock < 0) {
+            TracePrintf(0,"\tIt seems our only running process is blocked, decrementing...\n");
+            curr_proc->delay_clock--;
+        }
+    }
     
-    // flush TLB since we're swapping
-    WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
-    WriteRegister(REG_PTBR1, (unsigned int) next->user_page_table);
-
-    // commenting the 2 lines below stops the seg fault from occuring.
-    // memcpy(&(active->user_context), ctx, sizeof(UserContext));
-    // memcpy(uctxt, &(next->user_context), sizeof(UserContext));
-
-    active->status = 0;
-    next->status = 1;
-
-    KernelContextSwitch(KCSwitch, active, next);
 }
 
 /**
@@ -211,7 +289,7 @@ void TrapDiskHandler(void *ctx) {
  * 
  * @return int 
  */
-int Fork(void) {
+int KernelFork(void) {
     // check global running queue
     // give error if it's empty
 
@@ -247,7 +325,7 @@ int Fork(void) {
  * @param argvec 
  * @return int 
  */
-int Exec(char *filename, char **argvec) {
+int KernelExec(char *filename, char **argvec) {
     // check arguments
     // give error if invalid, and do not destroy process
 
@@ -268,7 +346,7 @@ int Exec(char *filename, char **argvec) {
  * 
  * @param status 
  */
-void Exit(int status) {
+void KernelExit(int status) {
     // check global running queue
     // give error if its empty
     
@@ -291,7 +369,7 @@ void Exit(int status) {
  * @param status_ptr 
  * @return int 
  */
-int Wait(int *status_ptr) {
+int KernelWait(int *status_ptr) {
     // give error if it's empty
     // 
     // check global ready, running and defunct queues for child proccesses
@@ -309,11 +387,22 @@ int Wait(int *status_ptr) {
  * 
  * @return int 
  */
-int GetPid(void) {
+int KernelGetPid(void) {
     // check global running queue
-    // give error if it's empty
-
+    int size = queue_size(running_q);
+    if (size != 1) {
+        TracePrintf(0,"ERROR in GetPid, how do we have a running queue of size %d?\n",size);
+    }
+    
     // access running process via queue and return its pid
+    pcb_t *curr_proc = queue_pop(running_q);
+
+    // since we popped, we add it back
+    queue_add(running_q,curr_proc,curr_proc->pid);
+
+    return curr_proc->pid;
+
+   
 }
 
 /**
@@ -322,19 +411,95 @@ int GetPid(void) {
  * @param addr 
  * @return int 
  */
-int Brk(void *addr) {
+int KernelBrk(void *addr) {
     // NOTE: refer to kernelsetbrk
     // check global running queue
-    // give error if its empty
+    int size = queue_size(running_q);
+    if (size != 1) {
+        TracePrintf(0,"ERROR in GetPid, how do we have a running queue of size %d?\n",size);
+    }
 
-    // set PAGEOFFSET to addr, which is rounded up to the multiple of PAGESIZE using UP_TO_PAGE or DOWN_TO_PAGE macro
+    // access running process via queue
+    pcb_t *curr_proc = queue_pop(running_q);
+    // since we popped, we add it back to running queue
+    queue_add(running_q,curr_proc,curr_proc->pid);
+
+    // check if given address is valid, if invalid, give ERROR
+    if (addr == NULL) {
+        TracePrintf(0,"ERROR, we got an invalid brk addr, it's NULL!\n");
+        return ERROR;
+    }
+
+    // index in page table of user brk
+    int curr_heap_index = curr_proc->user_heap_pt_index;
+
+    // page table index of base of region1 (for indexing purposes)
+    int user_pt_base_index = VMEM_1_BASE >> PAGESHIFT;
+
+    // when setting a new brk, we'll call up to page and put our brk there, so that we 
+    // allocate memory for the heap 1 page at a time.
+
+    // index in page table of address given, we'll just take up the entire page
+    int addr_index = UP_TO_PAGE((int)addr >> PAGESHIFT - user_pt_base_index);
+    // so addr_index is the potential new brk: the first invalid address (expressed as index in pt)
+
+    TracePrintf(0,"Within KernelBrk(): our current heap index is at %d, our address is at index %d\n",curr_heap_index,addr_index);
 
     // if (location > addr and < sp are not in process address space)
-        //return ERROR
+    if ((addr_index > curr_proc->user_stack_pt_index) || (addr_index < curr_heap_index)) {
+        TracePrintf(0,"The new brk address provided is either in the stack, or below our current brk\n");
+        return ERROR;
+    }
 
-    // return ERROR if not enough memory is avaible or addr is invalid
+    // looping through each virtual page between current brk and proposed brk
+    // we check the bit vector AND the user page table valid bit, if any of them
+    // are not free, error.
+    for (curr_heap_index ; curr_heap_index < addr_index ; curr_heap_index++) {
+        if (bit_vector[curr_heap_index + user_pt_base_index] == PAGE_NOT_FREE) {
+            TracePrintf(0,"ERROR, bit vector claims user pt index %d (which is at bit_vector index %d) is taken\n",curr_heap_index,curr_heap_index+user_pt_base_index);
+            return ERROR;
+        }
+        else if (curr_proc->user_page_table[curr_heap_index].valid == PAGE_NOT_FREE) {
+            TracePrintf(0,"ERROR, user page table index %d is not free\n",curr_heap_index);
+            return ERROR;
+        }
+    }
+
+    // if we made it here, it means we have space
+    TracePrintf(0,"in KernelBrk(): we've got space, updating page tables and bit vector...\n");
+
+    // loop through and allocate heap in pagetable
+    for (curr_heap_index = curr_proc->user_heap_pt_index ; curr_heap_index < addr_index ; curr_heap_index++) {
+        
+
+        // update page table
+        curr_proc->user_page_table[curr_heap_index].valid = VALID_FRAME;
+        
+        // set up pte
+        // curr_proc->user_page_table[curr_heap_index].pfn = // find a 
+        pte_t entry;
+        entry.valid = VALID_FRAME;
+        entry.prot = NO_X_W_R;
+        entry.pfn = AllocatePFN();
+
+        if (entry.pfn == -1) {
+            TracePrintf(0,"ERROR, in AllocatePFN no free frames found!\n");
+            Halt();
+        }
+
+
+        // update bit_vector
+        bit_vector[entry.pfn] = PAGE_NOT_FREE;
+
+        
+
+        // u_pt[index - vp0] = entry;
+
+    }
+    TracePrintf(0,"Exiting KernelBrk()...\n");
 
     // return success
+    return 0;
 }
 
 
@@ -348,7 +513,7 @@ int Brk(void *addr) {
  * @param clock_ticks 
  * @return int 
  */
-int Delay(int clock_ticks) {
+int KernelDelay(int clock_ticks) {
 
     if (clock_ticks == 0) {
         return 0;
@@ -356,14 +521,24 @@ int Delay(int clock_ticks) {
         return ERROR;
     } 
 
+    // check global running queue
+    int size = queue_size(running_q);
+    if (size != 1) {
+        TracePrintf(0,"ERROR in GetPid, how do we have a running queue of size %d?\n",size);
+    }
+
+    // access running process via queue
+    pcb_t *curr_proc = queue_pop(running_q);
+    // since we popped, we add it back to running queue
+    queue_add(running_q,curr_proc,curr_proc->pid);
+
+    curr_proc->delay_clock = clock_ticks;
+
     // move current process to blocked process queue
+    
+    
 
-    //for (int i = 0; i < clock_ticks; i++) {
-        // use some function to wait for a bit
-    //}
 
-    // OR, find something that does this
-    // functionthatwaits(clock_ticks)
 
     // remove process from blocked queue and onto ready queue.
 
@@ -379,7 +554,7 @@ int Delay(int clock_ticks) {
  * @param len 
  * @return int 
  */
-int TtyRead(int tty_id, void *buf, int len) {
+int KernelTtyRead(int tty_id, void *buf, int len) {
     // pseudocode
 }
 
@@ -393,7 +568,7 @@ int TtyRead(int tty_id, void *buf, int len) {
  * @param pipe_idp 
  * @return int 
  */
-int PipeInit(int *pipe_idp) {
+int KernelPipeInit(int *pipe_idp) {
     // return error if address null
 
     // allocate p_max bytes in kernel memory
@@ -415,7 +590,7 @@ int PipeInit(int *pipe_idp) {
  * @param len 
  * @return int 
  */
-int PipeRead(int pipe_id, void *buf, int len) {
+int KernelPipeRead(int pipe_id, void *buf, int len) {
     // check arguments are valid (no negatives or nulls)
         // error if anything invalid
 
@@ -444,7 +619,7 @@ int PipeRead(int pipe_id, void *buf, int len) {
  * @param len 
  * @return int 
  */
-int PipeWrite(int pipe_id, void *buf, int len) {
+int KernelPipeWrite(int pipe_id, void *buf, int len) {
     // check arguments are valid (no negatives or nulls)
         // error if anything invalid
 
@@ -480,7 +655,7 @@ int PipeWrite(int pipe_id, void *buf, int len) {
  * @param lock_idp 
  * @return int 
  */
-int LockInit(int *lock_idp) {
+int KernelLockInit(int *lock_idp) {
     // check for a valid argument
 
     /* This was at page 49 of textbook, not sure if this is right for yalnix?? */
@@ -501,7 +676,7 @@ int LockInit(int *lock_idp) {
  * @param lock_id 
  * @return int 
  */
-int Acquire(int lock_id) {
+int KernelAcquire(int lock_id) {
 
     // block caller by adding it to blocked processes queue.
 
@@ -517,7 +692,7 @@ int Acquire(int lock_id) {
  * @param lock_id 
  * @return int 
  */
-int Release(int lock_id) {
+int KernelRelease(int lock_id) {
     // check if caller has lock
 	// return error if they doesn't
     
@@ -532,7 +707,7 @@ int Release(int lock_id) {
  * @param cvar_idp 
  * @return int 
  */
-int CvarInit(int *cvar_idp) {
+int KernelCvarInit(int *cvar_idp) {
     // init a cvar and assign to cvar_idp.
     // return error or not
 }
@@ -543,7 +718,7 @@ int CvarInit(int *cvar_idp) {
  * @param cvar_idp 
  * @return int 
  */
-int CvarSignal(int cvar_idp) {
+int KernelCvarSignal(int cvar_idp) {
     // while (1)
 	// let waiter run by adding process to blocked processes queue
 
@@ -557,7 +732,7 @@ int CvarSignal(int cvar_idp) {
  * @param cvar_idp 
  * @return int 
  */
-int CvarBroadcast(int cvar_idp) {
+int KernelCvarBroadcast(int cvar_idp) {
     // while (1)
 	// release all processes in blocked processes queue. 
 
@@ -571,7 +746,7 @@ int CvarBroadcast(int cvar_idp) {
  * @param lock_id 
  * @return int 
  */
-int CvarWait(int cvar_idp, int lock_id) {
+int KernelCvarWait(int cvar_idp, int lock_id) {
     // block the current process by adding it to the blocked queue. 
     // release the the mutex lock signaled by lock_idp
     
@@ -589,7 +764,7 @@ int CvarWait(int cvar_idp, int lock_id) {
  * @param id 
  * @return int 
  */
-int Reclaim(int id) {
+int KernelReclaim(int id) {
     // destory the lock identified by id, if there is one.
     // release associated resources, if any. 
 
