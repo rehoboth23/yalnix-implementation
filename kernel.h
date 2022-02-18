@@ -6,8 +6,12 @@
  *  our OS and its first process
  */
 
+#ifndef __KERNEL_H_
+#define __KERNEL_H_
 
 #include <hardware.h>
+#include "process.h"
+#include "include.h"
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -27,7 +31,7 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt);
  * @param k_pt_size kernel page table size
  * @param bit_vector bit vector array
  */
-void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]);
+void SetRegion0_pt(pte_t *k_pt, int k_pt_size);
 
 /**
  * @brief function to create the VM for region1 pagetable
@@ -37,13 +41,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]);
  * @param bit_vector bit vector array
  * @param uctxt user context
  */
-void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uctxt);
-
-/**
- * @brief function for idle process representing kernel process
- * 
- */
-void DoIdle(void);
+void SetRegion1_pt(pte_t *u_pt, int u_pt_size);
 
 /**
  * @brief assume that kernel_brk is correct when vm is enabled
@@ -62,43 +60,56 @@ void DoIdle(void);
 int SetKernelBrk(void* addr);
 
 /**
+ * @brief Set the Up a pcb_t object
+ * 
+ * @param uctxt 
+ * @param k_pt 
+ * @return pcb_t* 
+ */
+pcb_t *SetUpPcb(UserContext *uctxt, pte_t *k_pt);
+
+/**
  * @brief 
  * 
+ * @param kctxt 
+ * @param currPCB 
+ * @param newPCB 
+ * @return KernelContext* 
  */
-void KCCopy();
+KernelContext *KCCopy(KernelContext *kc_in, void *pcb, void *notUsed);
 
-enum {
-    // default values
-    DEFAULT_TRACE_LEVEL   =    1,
-    MAX_TRACE_LEVEL       =   10, // yo what is the max trace level am I blind
-    DEFAULT_TICK_INTERVAL =  400, // in ms !
-    PAGE_FREE             =    1,
-    PAGE_NOT_FREE         =    0,
-    VALID_FRAME           =    1,
-    INVALID_FRAME         =    0,
-    VM_ENABLED            =    1,
-    VM_DISABLED           =    0,
-    ADDR_SPACE_ENTRY_SIZE =    4,
+/**
+ * @brief 
+ * 
+ * @param kc_in 
+ * @param pcb1 
+ * @param pcb2 
+ * @return KernelContext* 
+ */
+KernelContext *KCSwitch(KernelContext *kc_in, void *pcb1, void *pcb2);
+
+/*
+ * ==>> Declare the argument "proc" to be a pointer to the PCB of
+ * ==>> the current process.
+ */
+int LoadProgram(char *name, char *args[], pcb_t *proc);
 
 
-    // permissions for page table, in order X W R -- NOT R W X >:(
-    
-    
-    X_NO_W_R              =    5,      // read allowed, no write, exec allowed
-    NO_X_NO_W_NO_R        =    0,      // no read, no write, no execUserContext 
-    X_W_R                 =    7,      // read allowed, write allowed, exec allowed
-    NO_X_W_R              =    3,      // read allowed, write allowed, no exec
-    NO_X_NO_W_R           =    1
-};
+/**
+ * @brief Get a Free PFN
+ * 
+ * @return int -1 if not free pfn, pfn otherwise
+ */
+int AllocatePFN();
 
 
     
 // initialize pointer to bit vector (an array of integers of size num_of_frame)
-int *ptr_bit_vector;
-
+extern int *ptr_bit_vector;
+extern int num_of_frames;
 
 // kernel brk CHECK: if I change kernel_brk does _kernel_orig_brk change too
-void *kernel_brk;
+extern void *kernel_brk;
 
 // =================================
 //  yalnix-switch-configured values
@@ -111,7 +122,28 @@ void *kernel_brk;
 #define u_tracing_level DEFAULT_TRACE_LEVEL;  // user tracing level
 
 // tracefile that traceprint writes to
-char* tracefile; //= TRACE;
+extern char* tracefile; //= TRACE;
+extern pcb_t *idlePCB;
+extern pcb_t *initPCB;
 
 // tick interval of clock
 #define tick_interval DEFAULT_TICK_INTERVAL;
+
+
+/*
+ * ==>> #include anything you need for your kernel here
+ */
+
+
+/*
+ *  Load a program into an existing address space.  The program comes from
+ *  the Linux file named "name", and its arguments come from the array at
+ *  "args", which is in standard argv format.  The argument "proc" points
+ *  to the process or PCB structure for the process into which the program
+ *  is to be loaded.
+ */
+
+int create_region0_pagetable(pcb_t *proc);
+int create_region1_pagetable(pcb_t *proc);
+
+#endif

@@ -10,14 +10,14 @@
 K_SRC_DIR = .
 
 # What are the kernel c and include files?
-K_SRCS = kernel.c traphandlers.c process.c
-K_INCS = kernel.h traphandlers.h process.h
+K_SRCS = kernel.c traphandlers.c process.c queue.c contextswitch.c load.c
+K_INCS = kernel.h traphandlers.h process.h queue.h contextswitch.h load.h include.h
 
 # Where's your user source?
-U_SRC_DIR = #./test
+U_SRC_DIR = .#./test
 
 # What are the user c and include files?
-U_SRCS = 
+U_SRCS = init.c idle.c
 U_INCS = 
 
 
@@ -73,7 +73,7 @@ LINK_KERNEL = $(LINK.c)
 
 USER_LIBS = $(LIBDIR)/libuser.a
 ASFLAGS = -D__ASM__
-CPPFLAGS= -m32 -fno-builtin -I. -I$(INCDIR) -g -DLINUX 
+CPPFLAGS= -D_FILE_OFFSET_BITS=64 -m32 -fno-builtin -I. -I$(INCDIR) -g -DLINUX
 
 
 ##########################

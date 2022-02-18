@@ -5,14 +5,26 @@
  *  our OS and its first process
  */
 
-#include <ykernel.h>
+#include <yalnix.h>
 #include <hardware.h>
+#include <ykernel.h>
 #include <ylib.h>
 #include <yuser.h>
-#include <yalnix.h>
-#include "process.h"
-#include "traphandlers.h"
+#include <load_info.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "kernel.h"
+#include "include.h"
+#include "traphandlers.h"
+#include "process.h"
+
+int *ptr_bit_vector;
+void *kernel_brk;
+char* tracefile; //= TRACE;
+pcb_t *idlePCB;
+pcb_t *initPCB;
+int num_of_frames;
+int AllocatePFN();
 
 
 /**
@@ -24,18 +36,28 @@
  * @param pmem_size pmem_size, size of physical memory for our OS, it's in BYTES
  * @param uctxt uctxt, usercontext to go into our idle process
  */
-void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {    
-
+void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Entering KernelStart\n");
-
+// ========================== //
+//   GENERAL INITIALIZATION   //
+// ========================== //
     // if kernel_brk hasn't been changed by SetKernelBrk
 
     // here we haven't called malloc yet, so we can set kernel_brk to orig_brk  
     kernel_brk = _kernel_orig_brk;
     
+    char* prog;
+    if (cmd_args[0] == NULL) {
+        TracePrintf(0,"No program detected! We're still using init by default anyways\n");
+        prog = "init";
+    }
+    else {
+        TracePrintf(0,"Program detected!\n");
+        prog = cmd_args[0];
+    }
     
     // total number of frames in PM
-    int num_of_frames = pmem_size / PAGESIZE;
+    num_of_frames = pmem_size / PAGESIZE;
     TracePrintf(0, "Number of Frames -> %d\n", num_of_frames);
 
     // set up bit vector (to keep track of free frames)
@@ -73,17 +95,15 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Starting to initialize region0 page table\n");
 
     // number of kernel pagetable entires
-    int k_pt_size = VMEM_0_SIZE / PAGESIZE;
+    int k_pt_size =  KERNEL_PT_SIZE;
     TracePrintf(0,"\t~~~k_pt_size = %d~~~\n",k_pt_size);
 
     // declare kernel page table
-    pte_t k_pt[k_pt_size];
-    
+    pte_t *k_pt = malloc(sizeof(pte_t) * k_pt_size);
     if (k_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for kernel page table\n");
     }
-    // memset(k_pt, 0, sizeof(pte_t) * k_pt_size);
-    SetRegion0_pt(k_pt,k_pt_size,bit_vector);
+    SetRegion0_pt(k_pt,k_pt_size);
 
 // ================================= //
 //   INITIALIZE REGION1 PAGE TABLE   //
@@ -91,22 +111,19 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 
     TracePrintf(0,"DEBUG: Starting to initialize region 1 page table, just stack though\n");
     // number of user pagetable entires
-    int u_pt_size = VMEM_1_SIZE / PAGESIZE;
+    int u_pt_size = USER_PT_SIZE;
 
     // MAX_PT_LEN is a constant in hardware.h, the max #of pagetable entries
-    if (u_pt_size < MAX_PT_LEN) {
+    if (u_pt_size > MAX_PT_LEN) {
         TracePrintf(0,"Something went wrong, we have too many page table entries (we have %d, max is %d)", k_pt_size,MAX_PT_LEN);
     }
 
     // define user page table, a pointer to the first page table entry
-    pte_t u_pt[u_pt_size];
+    pte_t *u_pt = malloc(sizeof(pte_t) * u_pt_size);
     if (u_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for user page table\n");
     }
-    memset(u_pt, 0, sizeof(pte_t) * u_pt_size);
-    SetRegion1_pt(u_pt,u_pt_size,bit_vector,uctxt);
-
-    TracePrintf(0,"DEBUG: done with region1 page table\n");
+    SetRegion1_pt(u_pt,u_pt_size);
 
     // TracePrintf(0,"Going to malloc a whole lot...\n");
     // int *e = malloc(90000);
@@ -118,40 +135,49 @@ void KernelStart(char *cmd_args[],unsigned int pmem_size, UserContext *uctxt) {
 // ============================= //
 //   SET UP IDLEPCB AND DOIDLE   //
 // ============================= //
-    pcb_t *idlePCB = init_process();
-    if (idlePCB == NULL) {
-        // DO SOME ERROR HANDLING
+
+    idlePCB = SetUpPcb(uctxt, k_pt);
+
+    int k_stack_base = KERNEL_STACK_BASE >> PAGESHIFT;
+
+    // set up kernel stack page entries
+    for (int i = 0; i < KERNEL_STACK_SIZE; i++) {
+        idlePCB->kernel_stack_pt[i].pfn = k_pt[k_stack_base + i].pfn;
+        idlePCB->kernel_stack_pt[i].prot = NO_X_W_R;
+        idlePCB->kernel_stack_pt[i].valid = VALID_FRAME;
     }
-    idlePCB->user_context = uctxt;
-    idlePCB->user_context->pc = DoIdle;
-    // idlePCB's stack has been set while setting up region1's page table
-    TracePrintf(0,"sp = %x, pc = %x\n",idlePCB->user_context->sp,idlePCB->user_context->pc);
 
-    void* addr = (void*) DOWN_TO_PAGE(idlePCB->user_context->pc);
-    int vpn = ((int)addr >> PAGESHIFT) - (VMEM_0_BASE >> PAGESHIFT);
-    TracePrintf(0,"pc is at vpn %x\n",vpn);
+    initPCB = SetUpPcb(uctxt, k_pt);
 
-    idlePCB->kernel_context = NULL;
-    idlePCB->pid = helper_new_pid((void *) ReadRegister(REG_PTBR1));
-    idlePCB->kernel_page_table = k_pt;
-    idlePCB->user_page_table = u_pt;
-    /* =================== idle =================== */
-    TracePrintf(0, "Debug: Initializing Idle Proccess\n");
-
-    TracePrintf(0,"Exiting KernelStart...\n");  
-}
-
-
-/**
- * @brief function for idle process representing kernel process
- * 
- */
-void DoIdle(void) {
-    int pid = GetPid();
-    while(1) {
-        TracePrintf(1,"DoIdle Process - PID : %d\n", pid);
-        Pause();
+    // set up kernel stack page entries
+    for (int i = 0; i < KERNEL_STACK_SIZE; i++) {
+        int pfn = AllocatePFN();
+        initPCB->kernel_stack_pt[i].pfn = pfn;
+        initPCB->kernel_stack_pt[i].prot = NO_X_W_R;
+        initPCB->kernel_stack_pt[i].valid = VALID_FRAME;
     }
+
+    LoadProgram("idle", cmd_args, idlePCB);
+
+    LoadProgram("init", cmd_args, initPCB);
+
+    // flush region 0 and region 1
+    WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
+    WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
+
+    // update ptbr1
+    WriteRegister(REG_PTBR1, (unsigned int) idlePCB->user_page_table);
+
+    // copy user context
+    memcpy(uctxt, &(idlePCB->user_context), sizeof(UserContext));
+
+    // temporary solution before we get queues working: set status to 1
+    idlePCB->status = 1;    // set idle pcb as active
+
+    // call KCCopy
+    KernelContextSwitch(KCCopy, initPCB, NULL);
+
+    TracePrintf(0,"Exiting KernelStart...\n");
 }
 
 /**
@@ -161,9 +187,8 @@ void DoIdle(void) {
  * @param k_pt_size kernel page table size
  * @param bit_vector bit vector array
  */
-void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
+void SetRegion0_pt(pte_t *k_pt, int k_pt_size) {
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
-    //WriteRegister(REG_PTBR0, &kernal_page_table);
     WriteRegister(REG_PTBR0, (unsigned)k_pt);
 
     // tell hardware the number of pages in Region0's page table
@@ -202,14 +227,15 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
     (int)_kernel_data_start,(int)_kernel_data_end,(int)kernel_brk,(int)_kernel_orig_brk,
     (int)KERNEL_STACK_BASE,(int)KERNEL_STACK_LIMIT);
 
+    memset(k_pt, 0, sizeof(pte_t) * k_pt_size);
 
     int pt_index; // page table index
     // for each each page table entry
     for (pt_index = 0; pt_index < k_pt_size; pt_index++) {
-        TracePrintf(0,"\t\tat address %x\n",pt_index << PAGESHIFT);
+        // TracePrintf(0,"\t\tat address %x\n",pt_index << PAGESHIFT);
     // .text
         // if page table index is between .text's virtual page number range
-        if ((pt_index >= text_vp_lowest - vp0) && (pt_index < text_vp_highest - vp0)) { // FYI changed from kernal_data_start to _kernal_data_start
+        if ((pt_index >= text_vp_lowest - vp0) && (pt_index < text_vp_highest - vp0)) { // FYI changed from kernel_data_start to _kernel_data_start
 
             // create pte with .text permissions
             pte_t entry;
@@ -222,7 +248,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
 
 
             // update bitvector
-            bit_vector[pt_index] = PAGE_NOT_FREE;
+            ptr_bit_vector[pt_index] = PAGE_NOT_FREE;
         }
         
     // .data
@@ -240,7 +266,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
 
 
             // update bitvector
-            bit_vector[pt_index] = PAGE_NOT_FREE;
+            ptr_bit_vector[pt_index] = PAGE_NOT_FREE;
         }
 
     // heap
@@ -259,7 +285,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             TracePrintf(0,"~~~heap: pt_index = %d,low = %d, high = %d => pfn = %d~~~\n",pt_index,heap_vp_lowest,heap_vp_highest,entry.pfn);
 
             // update bit vector
-            bit_vector[pt_index] = PAGE_NOT_FREE;
+            ptr_bit_vector[pt_index] = PAGE_NOT_FREE;
         }
     
     // stack
@@ -276,7 +302,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             TracePrintf(0,"~~~stack: pt_index = %d,low = %d, high = %d => pfn = %d~~~\n",pt_index,stack_vp_lowest,stack_vp_highest,entry.pfn);
 
             // update bit vector
-            bit_vector[pt_index] = PAGE_NOT_FREE;
+            ptr_bit_vector[pt_index] = PAGE_NOT_FREE;
         }
 
         // otherwise
@@ -288,7 +314,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
             k_pt[pt_index - vp0] = entry;
 
             // update bit vector
-            bit_vector[pt_index] = PAGE_FREE;
+            ptr_bit_vector[pt_index] = PAGE_FREE;
         }
 
     }
@@ -304,17 +330,9 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size, int bit_vector[]) {
  * @param bit_vector bit vector array
  * @param uctxt user context
  */
-void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uctxt) {
+void SetRegion1_pt(pte_t *u_pt, int u_pt_size) {
 
-
-    TracePrintf(0,"Entering SetRegion1_pt\n");
-
-    TracePrintf(0,"VMEM_1_LIMIT: %x\n",VMEM_1_LIMIT);
-
-    // vp0 = virtual page number 0 of region1
-    int vp0 = VMEM_1_BASE >> PAGESHIFT;
-    // pf0 = physical frame number 0
-    int pf0 = PMEM_BASE >> PAGESHIFT;
+    TracePrintf(0,"DEBUG: Initializing region1 page table\n");
 
     // tell hardware where Region1's page table, (virtual memory base address of page_table)
     WriteRegister(REG_PTBR1,(unsigned int)u_pt); 
@@ -322,42 +340,8 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size, int bit_vector[],UserContext *uct
     // tell hardware the number of pages in Region1's page table
     WriteRegister(REG_PTLR1,u_pt_size);
 
-    // when we set up region1 we must do stack only, one valid page for it
+    memset(u_pt, 0, sizeof(pte_t) * u_pt_size);
 
-    // find the first free frame in region1 memory space, so we start
-    // indexing after all of kernel's frame indices
-
-    // have pt_index start at vp0 for region1
-
-    // stack is the top entry of region1s stack
-    uctxt->sp = (void*)VMEM_1_LIMIT - ADDR_SPACE_ENTRY_SIZE; // take not of this
-
-    TracePrintf(0,"Set stack pointer to %x\n",uctxt->sp);
-
-    void *bottom_of_stack_page = (void *) DOWN_TO_PAGE(uctxt->sp);
-
-    // now we want to set up an entry in the region1 page table
-    // this is the index of the page table
-    int vpn = (int)bottom_of_stack_page >> PAGESHIFT; // equals vp0 for region1 pagetable
-
-    int u_pt_index = vpn - vp0;
-
-    TracePrintf(0,"page table index %d, which is at vpn %d, for vp0 %d\n", u_pt_index, vpn, vp0);
-
-    TracePrintf(0,"pf0 is %x\n", pf0);
-
-    // create pte with stack permissions
-    pte_t entry;
-    entry.valid = VALID_FRAME;
-    entry.prot = NO_X_W_R; // we can read, write but not execute our stack
-    entry.pfn = u_pt_index + vp0 + pf0;
-    u_pt[u_pt_index] = entry;
-    bit_vector[u_pt_index + vp0] = PAGE_NOT_FREE;
-
-
-    TracePrintf(0,"Index of stack pointer is %x\n", (int)uctxt->sp >> PAGESHIFT );
-    // ================================
-    
     TracePrintf(0,"DEBUG: Done initializing region1 page table\n"); 
 
 }
@@ -395,7 +379,7 @@ int SetKernelBrk(void* addr) {
         TracePrintf(0,"DEBUG: vm is enabled...\n");
 
         // check if given address is valid, if invalid, give ERROR
-        if ((kernel_brk == NULL) || (kernel_brk > (void *)KERNEL_STACK_BASE)) {
+        if ((kernel_brk == NULL) || (kernel_brk >= (void *)KERNEL_STACK_BASE)) {
             TracePrintf(0,"ERROR, we got an invalid brk, it's either NULL or within the kernel stack");
             return ERROR;
         }
@@ -489,3 +473,58 @@ int SetKernelBrk(void* addr) {
         return ERROR;
     }
 }
+
+/**
+ * @brief Set up a pcb_t object
+ * 
+ * @param uctxt 
+ * @param k_pt 
+ * @return pcb_t* 
+ */
+pcb_t *SetUpPcb(UserContext *uctxt, pte_t *k_pt) {
+    pcb_t *pcb = init_process();
+    if (pcb == NULL) {
+        TracePrintf(0,"ERROR in SetUpPcb, init_process failed\n");
+        return NULL;
+    }
+
+    // clear user page table
+    memset(pcb->user_page_table, 0, sizeof(pte_t) * USER_PT_SIZE);
+
+    // set everything in user page table to invalid
+    for(int index = 0; index < USER_PT_SIZE; index++ ) {
+        pcb->user_page_table[index].valid = INVALID_FRAME;
+        pcb->user_page_table[index].pfn = 0;
+        pcb->user_page_table[index].prot = NO_X_NO_W_NO_R;
+    }
+
+    // copy user context and generate PID
+    memcpy(&(pcb->user_context), uctxt, sizeof(UserContext));
+    pcb->pid = helper_new_pid(pcb->user_page_table);
+    TracePrintf(0, "PID -> %d\n", pcb->pid);
+
+    return pcb;
+}
+
+
+/**
+ * @brief Get a Free PFN
+ * 
+ * @return int -1 if not free pfn, pfn otherwise
+ */
+int AllocatePFN() {
+
+    // only look in the region1 pfn frames 
+    for (int i =  VMEM_1_BASE >> PAGESHIFT; i < num_of_frames; i++) {
+        // if it's free
+        if (ptr_bit_vector[i] == PAGE_FREE) {
+            TracePrintf(0, "allocate -> %d\n", i);
+
+            // mark as taken
+            ptr_bit_vector[i] = PAGE_NOT_FREE;
+            return i;
+        }
+    }
+    return -1;
+}
+
