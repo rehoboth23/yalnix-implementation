@@ -38,8 +38,17 @@ void TrapKernelHandler(void *ctx) {
         case YALNIX_EXEC:
             TracePrintf(0, "kernel calling Exec(%s, ...)\n", regs[0]);
             regs[0] = KernelExec(user_context, (char *) regs[0], (char **) regs[1]);
-            user_context->sp = activePCB->user_context.sp;
-            user_context->pc = activePCB->user_context.pc;
+            
+            // if kernel exec didn't fail
+            if (regs[0] != ERROR) {
+                user_context->sp = activePCB->user_context.sp;
+                user_context->pc = activePCB->user_context.pc;
+            }
+            // otherwise exit the process with error code
+            else {
+                KernelExit(ERROR,user_context);
+            }
+            
             break;
         case YALNIX_EXIT:
             TracePrintf(0, "kernel calling Exit(%d)\n", (int) regs[0]);
