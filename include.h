@@ -28,8 +28,14 @@ enum {
     X_W_R                 =    7,      // read allowed, write allowed, exec allowed
     NO_X_W_R              =    3,      // read allowed, write allowed, no exec
     NO_X_NO_W_R           =    1,
-    NO_X_W_NO_R            =   2,
-    X_W_NO_R              =    6
+    NO_X_W_NO_R           =    2,
+    X_W_NO_R              =    6,
+
+    // BLOCKED CODES
+    NOT_BLOCKED           =    0,
+    BLOCKED_DELAY         =    1, 
+    BLOCKED_WAIT          =    2,
+
 };
 
 #endif

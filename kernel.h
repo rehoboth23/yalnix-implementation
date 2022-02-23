@@ -10,8 +10,10 @@
 #define __KERNEL_H_
 
 #include <hardware.h>
+#include "queue.h"
 #include "process.h"
 #include "include.h"
+#include "list.h"
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -29,7 +31,6 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt);
  * 
  * @param k_pt kernel page table
  * @param k_pt_size kernel page table size
- * @param bit_vector bit vector array
  */
 void SetRegion0_pt(pte_t *k_pt, int k_pt_size);
 
@@ -38,7 +39,6 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size);
  * 
  * @param u_pt user page table
  * @param u_pt_size user page table size
- * @param bit_vector bit vector array
  * @param uctxt user context
  */
 void SetRegion1_pt(pte_t *u_pt, int u_pt_size);
@@ -60,15 +60,6 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size);
 int SetKernelBrk(void* addr);
 
 /**
- * @brief Set the Up a pcb_t object
- * 
- * @param uctxt 
- * @param k_pt 
- * @return pcb_t* 
- */
-pcb_t *SetUpPcb(UserContext *uctxt, pte_t *k_pt);
-
-/**
  * @brief 
  * 
  * @param kctxt 
@@ -88,6 +79,13 @@ KernelContext *KCCopy(KernelContext *kc_in, void *pcb, void *notUsed);
  */
 KernelContext *KCSwitch(KernelContext *kc_in, void *pcb1, void *pcb2);
 
+
+/**
+ * @brief Set the Up Globals object
+ * 
+ */
+void SetUpGlobals(); 
+
 /*
  * ==>> Declare the argument "proc" to be a pointer to the PCB of
  * ==>> the current process.
@@ -102,10 +100,31 @@ int LoadProgram(char *name, char *args[], pcb_t *proc);
  */
 int AllocatePFN();
 
+/**
+ * @brief 
+ * 
+ * @param pfn 
+ */
+void DeallocatePFN(int pfn);
+
+/**
+ * @brief 
+ * 
+ * @param uctxt 
+ */
+void SwapProcess(queue_t *moveActive,UserContext *uctxt);
+
+/**
+ * @brief 
+ * 
+ * @param pcb 
+ * @return queue_t* 
+ */
+queue_t *CheckBlocked(pcb_t *pcb);
+
 
     
 // initialize pointer to bit vector (an array of integers of size num_of_frame)
-extern int *ptr_bit_vector;
 extern int num_of_frames;
 
 // kernel brk CHECK: if I change kernel_brk does _kernel_orig_brk change too
@@ -123,8 +142,13 @@ extern void *kernel_brk;
 
 // tracefile that traceprint writes to
 extern char* tracefile; //= TRACE;
+extern pcb_t *activePCB;
+extern queue_t *ready_q;
+extern queue_t *blocked_q;
+extern queue_t *defunct_q;
+extern list_t *pfn_list;
+extern int global_clock_ticks;
 extern pcb_t *idlePCB;
-extern pcb_t *initPCB;
 
 // tick interval of clock
 #define tick_interval DEFAULT_TICK_INTERVAL;

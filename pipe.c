@@ -1,5 +1,7 @@
 /*
- *  The format of the file system and other constants used by YFS
+ * pipe.c
+ *
+ * The format of the file system and other constants used by YFS
  */
 
 #include <ylib.h>
