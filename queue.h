@@ -1,36 +1,33 @@
-/**
- * @file queue.h
- * @author NALAOS Group
- * @brief holds functions that handle queues, an array of pointers to processes
- *      this'll be the helper-functions for our running, ready, defunct, and blocked queues
- * @version 0.1
- * @date 2022-02-15
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
 #ifndef __QUEUE_H_
 #define __QUEUE_H_
 
 #include "process.h"
 
-
 /**
- * @brief general purpose Queue struct for yalnix OS
+ * @brief node in a queue
+ * 
  */
-typedef struct Queue queue_t;
+typedef struct qnode {
+    int id;
+    pcb_t *data;
+    struct qnode *next;
+} qnode_t;
 
+typedef struct queue {
+    int id;
+    int size;
+    qnode_t *head;
+    qnode_t *tail;
+} queue_t;
 
 /**
  * @brief initializes the queue at the inner pointer
  * 
- * @param queue pointer to queue pointer
- * @return int 
- *  - 0 if succesful 
- *  - 1 otherwise
- */
-int queue_init(queue_t **queue);
+ * @return queue_t * 
+ *  - new queue on success
+ *  - NULL otherwise
+*/
+queue_t * queue_init();
 
 /**
  * @brief sets the id of a queue
@@ -65,20 +62,20 @@ int queue_add(queue_t *queue, pcb_t *data, int  id);
  * 
  * @param queue removes item from the given queue
  * @param id id of data to remove
- * @return void* 
+ * @return pcb_t* 
  * - NULL if failure
  * - data with id in queue if success
  */
-void *queue_remove(queue_t *queue, int id);
+pcb_t *queue_remove(queue_t *queue, int id);
 
 /**
  * @brief removes process at the front of the queue
  * and return the pointer to the removed process
  * 
  * @param queue pointer to queue to pop from
- * @return void * pointer to data at front of queue
+ * @return pcb_t * pointer to data at front of queue
  */
-void *queue_pop(queue_t *queue);
+pcb_t *queue_pop(queue_t *queue);
 
 /**
  * @brief finds if given queue contains item with given id
