@@ -5,8 +5,11 @@
 
 int main(int argc, char const *argv[]) {
     int pid = GetPid();
-    int ppid = 0;
-    int rc = 0;
-    TracePrintf(0, "Nala exec program (%d) :\n\tPID -> %d\n\tPPID -> %d\n", argc, pid, ppid);
-    return 0;
+    TracePrintf(1, "to_exec.c: PID -> %d\n", pid);
+    if (pid == 2) {
+        return 2;
+    }
+    else {
+        return 0;
+    }
 }
