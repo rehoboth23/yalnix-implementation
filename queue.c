@@ -5,122 +5,169 @@
  *  this'll be the helper-functions for our running, ready, defunct, and blocked queues
 */
 
+#include "hardware.h"
+#include "ylib.h"
 #include "process.h"
+#include "queue.h"
 
-typedef struct Queue {
-    // malloc space in heap
-    // check malloc, if not enough space, give error
 
-    // return address to malloc'd memory
-} queue_t;
+/**
+ * @brief create and return a queue node
+ * 
+ * @param id id of new node (most often process id)
+ * @param data data to be contained in node
+ * @return qnode_t* 
+ * - NULL if failure
+ * - new queue node otherwise
+ */
+static qnode_t *qnode_init(int id, pcb_t *data);
+
+/**
+ * @brief delete a queue node
+ * 
+ * @param node queue node to be deleted
+ * @param dataDelete function pointer to a function to delete data in node
+ */
+static void qnode_delete(qnode_t * node, void (*dataDelete) (pcb_t *data));
+
 
 // QUESTION: do we need a function for deleting queues?
 
-/*
- * queue_init
- *  args
- *  - pointer to queue pointer
- *  does
- *  - initializes the queue at the inner pointer
- * returns
- *  - 0 if succesful 1 otherwise
+
+/**
+ * @brief initializes the queue at the inner pointer
+ * 
+ * @param queue pointer to queue pointer
+ * @return int 
+ *  - 0 if succesful 
+ *  - 1 otherwise
  */
-int queue_init(queue_t **queue) {
-    // initialize a queue
-    // malloc space in heap
-    // check malloc, if not enough space, give error
-    // return address to malloc'd memory
+queue_t * queue_init() {
+    queue_t *queue = malloc(sizeof(queue_t));
+    if (queue == NULL ) return NULL;
+    queue->id = 0; 
+    queue->size = 0; 
+    queue->head = NULL; 
+    queue->tail = NULL;
+    return queue;
 }
 
-/*
- * queue_add
- *
- * adds process to the given queue
- * returns
+/**
+ * @brief adds item to the given queue
+ * 
+ * @param queue pointer to queue
+ * @param item item to add to queue
+ * @param id    id of item to add to queue
+ * @return int 
  *  - 0 if success
  *  - 1 if fail
  */
-int queue_add(queue_t *queue, pcb_t *process) {
-    // check if both arguments are NULL
+int queue_add(queue_t *queue, pcb_t *data, int  id) {
+    // ensure all the args are valid
+    if (queue == NULL || data == NULL) {
+        TracePrintf(0, "ERROR: queue_add, queue or data are null\n");
+        return ERROR;
+    } 
 
-    //  do we need to do any other checks to make sure process is valid>]?
+    qnode_t *node = qnode_init(id, data);
+    if (node == NULL) {
+        TracePrintf(0, "ERROR: queue_add, node is null\n");
+        return ERROR;
+    }
 
-    // call queue_find to check if it is already in the queue
-        // return error if so, something went wrong
-    
-    // otherwise, add the process to the end of the array.
+    if (queue->head == NULL) {
+        queue->head = node; // set head as new node
+        queue->tail = node; // set tail as new node
+    } else { // otherwise queue is not empty
+        queue->tail->next = node;
+        queue->tail =  queue->tail->next;
+    }
+    queue->size++;  // increment queue size
+    return 0; 
 }
 
-/*
- * queue_remove
- *
- * removes process from the given queue
- * returns
- *  - 0 if success
- *  - 1 if fail
+/**
+ * @brief 
+ * 
+ * @param queue removes item from the given queue
+ * @param id id of data to remove
+ * @return pcb_t * 
+ * - NULL if failure
+ * - data with id in queue if success
  */
-int queue_remove(queue_t *queue, pcb_t *process) {
-    // check if both arguments are NULL/invalid
-
-    // call queue_find 
-    // if it returns -1, return 1 as something went wrong
-
-    // otherwise, remove the process from the index, and shift all other processes
-    // down the array
-
-    // return 0
+pcb_t *queue_remove(queue_t *queue, int id) {
 }
 
-/*
- * queue_pop
- *
- * removes process at the front of the queue
+/**
+ * @brief removes process at the front of the queue
  * and return the pointer to the removed process
- * returns
- *  - address to process if success
- *  - NULL if fail (e.g. queue is empty)
+ * 
+ * @param queue pointer to queue to pop from
+ * @return pcb_t * pointer to data at front of queue
  */
-struct PCB_t* queue_pop(queue_t *queue) {
-    // give error if queue is empty
-
-    // call queue_remove on the first process in array
-
-    // return process
+pcb_t *queue_pop(queue_t *queue) {
+    if (queue == NULL) return NULL;
+    if (queue->head == NULL) return NULL;
+    qnode_t *node = queue->head;
+    queue->head = node->next;
+    if (queue->head == NULL) queue->tail = NULL;
+    queue->size--;
+    void *data = node->data; // get data from node
+    qnode_delete(node, NULL);  // delete node withouth deleting node data
+    return data;
 }
 
-/*
- * queue_find
- *
- * finds given process in the given queue and gets the index
- * returns
- *  - index in array if it exists
- *  - -1 if it doesn't
+/**
+ * @brief finds if given queue contains item with given id
+ * 
+ * @param queue pointer to queue
+ * @param id id of item to find in queue
+ * @return int 
+ * - 0 if not exists
+ * - 1 if exists
  */
-int queue_find(queue_t *queue, pcb_t *process) {
-    // check if both arguments are NULL/invalid
-
-    // loop through each element of array
-
-    // if process found, return index
-
-    // otherwise, return -1
+int queue_find(queue_t *queue, int id) {
 }
 
-
-/*
- * queue_size
- *
- * returns
- *  - size of the queue
- *  - -1 if something went wrong.
+/**
+ * @brief delete a queue
+ * 
+ * @param queue queue to delete 
+ * @param dataDelete function pointer to a function to delete data in queue
  */
-int queue_size(queue_t *queue) {
-    // check if NULL, return -1 if so
-
-    // give 0 if queue is empty
-
-    // loop through array until end of array, inc counter
-
-    // return counter
+void queue_delete(queue_t *queue, void (*dataDelete) (pcb_t *data)) {
 }
 
+/**
+ * @brief create and return a queue node
+ * 
+ * @param id id of new node (most often process id)
+ * @param data data to be contained in node
+ * @return qnode_t* 
+ * - NULL if failure
+ * - new queue node otherwise
+ */
+static qnode_t *qnode_init(int id, pcb_t *data) {
+    if (data == NULL) return NULL;
+    qnode_t *node = malloc(sizeof(qnode_t));
+    if (node == NULL) return NULL;
+    node->id = id;
+    node->data = data;
+    node->next = NULL;
+    return node;
+}
+
+/**
+ * @brief delete a queue node
+ * 
+ * @param node queue node to be deleted
+ * @param dataDelete function pointer to a function to delete data in node
+ */
+static void qnode_delete(qnode_t * node, void (*dataDelete) (pcb_t *data)) {
+    if (node != NULL) {
+        if (dataDelete != NULL) {
+            dataDelete(node->data);
+        }
+        free(node);
+    }
+}

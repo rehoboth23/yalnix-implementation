@@ -288,7 +288,7 @@ For the diagram above, we are writing the **kernel code** (light gray boxes), an
    1. this is tricky, all our registers and PC and stack pointers need to be changed while using those same registers. We also need to save the userContext of the running process into some data structure, it is restored by passing the UserContext pointer into the trap handler (once in trap handler, hardware will take it from there)
    2. Cause it's tricky, we're provided a way for our kernel code to invoke kernel context-switching functions, which we'll write, in a special context
 
-Kernel code is linked to a provided **kernel library**, this includes routines like `malloc()` and others, for dynamic allocation from the kernal heap.
+Kernel code is linked to a provided **kernel library**, this includes routines like `malloc()` and others, for dynamic allocation from the kernel heap.
 
 ### Zooming in on each transition
 
@@ -326,7 +326,7 @@ Kernel code is linked to a provided **kernel library**, this includes routines l
 
 **Transition 5 and 6: syscalls, traps, exceptions** 
 
-- we need to write the trap handler that switches to kernal mode, handle the syscall, interrupts, exceptions, and return hardware to user mode correctly
+- we need to write the trap handler that switches to kernel mode, handle the syscall, interrupts, exceptions, and return hardware to user mode correctly
   - go to txtbook chapter 2 and 3
   - for the pseudocode of the syscalls below, shall we start at the point where we're already in Kernel mode with our context set up?
   - syscalls, `yalnix.h` defines constant syscall number for each system (the syscall num is in the `UserContext` struct that's passed by the hardware for the trap), yuser.h defines the function prototypes, but the manual has the most info.
