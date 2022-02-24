@@ -52,8 +52,9 @@ pcb_t *init_process(UserContext *uctxt);
  * 
  * @param u_pt 
  * @param k_stack 
+ * @return int
  */
-void free_addr_space(pte_t *u_pt, pte_t *k_stack);
+int free_addr_space(pte_t *u_pt, pte_t *k_stack);
 
 /**
  * @brief 
@@ -70,7 +71,8 @@ int CopyUPT(pte_t *u_pt1, pte_t *u_pt2, pte_t *k_pt, int reserved_kernel_index);
  * @brief 
  * 
  * @param pcb 
+ * @return int
  */
-void delete_process(pcb_t *pcb);
+int delete_process(pcb_t *pcb);
 
 #endif

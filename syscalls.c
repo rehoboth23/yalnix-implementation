@@ -22,9 +22,15 @@
 int KernelFork(UserContext *uctxt) {
     if (uctxt == NULL) {
         TracePrintf(0,"ERROR: KernelFork got a null user context\n");
+        return ERROR;
     }
 
     pcb_t *childPCB = init_process(uctxt);
+
+    if (childPCB == NULL) {
+        TracePrintf(0,"ERROR: child PCB in KernelFork is null.\n");
+        return ERROR;
+    }
 
     pte_t *k_pt = ( pte_t *) ReadRegister(REG_PTBR0);  // current kernel stack should be regioin 0 stack
     int kernel_stack_base = (int) KERNEL_STACK_BASE >> PAGESHIFT;
@@ -46,7 +52,13 @@ int KernelFork(UserContext *uctxt) {
     WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
 
     if (CopyUPT(activePCB->user_page_table, childPCB->user_page_table, k_pt, reserved_kernel_index) == ERROR) {
-        free_addr_space(childPCB->user_page_table, childPCB->kernel_stack_pt);
+        TracePrintf(0,"ERROR: KernelFork, failed to CopyUPT\n");
+        return ERROR;
+    }
+
+    if (free_addr_space(childPCB->user_page_table, childPCB->kernel_stack_pt) == ERROR) {
+        TracePrintf(0,"ERROR: KernelFork, failed to free address space\n");
+        return ERROR;
     }
 
     // free kernel index when done (make invalid)
@@ -54,7 +66,11 @@ int KernelFork(UserContext *uctxt) {
     k_pt[reserved_kernel_index].valid = INVALID_FRAME;
     k_pt[reserved_kernel_index].prot = NO_X_NO_W_NO_R;
 
-    queue_add(ready_q, childPCB, childPCB->pid);
+    if (queue_add(ready_q, childPCB, childPCB->pid) == ERROR) {
+        TracePrintf(0,"ERROR: KernelFork, failed add to queue.\n");
+        return ERROR;
+    }
+
     KernelContextSwitch(KCCopy, childPCB, NULL);
     if (activePCB->pid == childPCB->pid) return 0;
 
@@ -82,7 +98,10 @@ int KernelExec(UserContext *uctxt, char *filename, char **argvec) {
     WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_KSTACK);
 
     // load the new program into the pcb
-    LoadProgram(filename, argvec, activePCB);
+    if (LoadProgram(filename, argvec, activePCB) == ERROR) {
+        TracePrintf(0,"ERROR: KernelExec failed to loadprogram.\n");
+        return ERROR;
+    }
     return 0;
 }
 
@@ -92,7 +111,14 @@ int KernelExec(UserContext *uctxt, char *filename, char **argvec) {
  * @param uctxt 
  * @param exit_code 
  */
-void KernelExit(int exit_code, UserContext *uctxt) {
+int KernelExit(int exit_code, UserContext *uctxt) {
+
+    if(uctxt == NULL) {
+        TracePrintf(0,"ERROR: KernelExit received a NULL argument\n");
+        return ERROR;
+    }
+
+
     TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d\n", ready_q->size, blocked_q->size, defunct_q->size);
     activePCB->exit_code = exit_code;
     int limit;
@@ -109,18 +135,30 @@ void KernelExit(int exit_code, UserContext *uctxt) {
                 TracePrintf(0, "~~~ Children left -> %d children\n", r_pcb->num_children);
                 swap_q = defunct_q;
             }
-            queue_add(ready_q, r_pcb, r_pcb->pid);
+            if (queue_add(ready_q, r_pcb, r_pcb->pid) == ERROR) {
+                TracePrintf(0,"ERROR: KernelExit, unable to add to queue in ready q for loop\n");
+                return ERROR;
+            }
         }
 
         // update parents && children in the blocked queue
         limit = blocked_q->size;
         for (int i = 0; i < limit; i++) {
             pcb_t *b_pcb = queue_pop(blocked_q);
+
+            if (b_pcb == NULL) {
+                TracePrintf(0,"ERROR: KernelExit, b_pcb from queue is null.\n");
+                return ERROR;
+            }
+
             if (b_pcb->pid == activePCB->ppid && b_pcb->blocked_code == BLOCKED_WAIT) {
                 b_pcb->blocked_code = activePCB->exit_code;
                 b_pcb->num_children--;
                 TracePrintf(0, "~~~ Children left -> %d children\n", b_pcb->num_children);
-                queue_add(ready_q, b_pcb, b_pcb->pid);
+                if (queue_add(ready_q, b_pcb, b_pcb->pid) == ERROR) {
+                    TracePrintf(0,"ERROR: KernelExit, unable to add to queue in blocked q for loop\n");
+                    return ERROR;
+                }
                 continue;
             } else if (b_pcb->pid == activePCB->ppid) {
                 b_pcb->num_children--;
@@ -129,7 +167,10 @@ void KernelExit(int exit_code, UserContext *uctxt) {
             } else if (b_pcb->ppid == activePCB->pid) {
                  b_pcb->ppid = 0;
             }
-            queue_add(blocked_q, b_pcb, b_pcb->pid);
+            if (queue_add(blocked_q, b_pcb, b_pcb->pid) == ERROR) {
+                TracePrintf(0,"ERROR: KernelExit, unable to add to queue in blocked q for loop\n");
+                return ERROR;
+            }
         }
 
         // if any children are in the defunct queue take them out
@@ -137,20 +178,40 @@ void KernelExit(int exit_code, UserContext *uctxt) {
         for (int i = 0; i < limit; i++) {
             // for now only condition for defunct is if it has a ready/blocked parent
             pcb_t *d_pcb = queue_pop(defunct_q);
+
+            if (d_pcb == NULL) {
+                TracePrintf(0,"ERROR: KernelExit, d_pcb from queue is null.\n");
+                return ERROR;
+            }
+
             if (d_pcb->ppid != activePCB->pid) {
-                queue_add(defunct_q, d_pcb, d_pcb->pid);
+                if (queue_add(defunct_q, d_pcb, d_pcb->pid) == ERROR) {
+                    TracePrintf(0,"ERROR: KernelExit, unable to add to defunct queue.\n");
+                    return ERROR;
+                }
             }
         }
     }
 
     if (swap_q == NULL) {
-        delete_process(activePCB);
+        if (delete_process(activePCB) == ERROR) {
+            TracePrintf(0,"ERROR: KernelExit, unable to delete process.\n");
+            return ERROR;
+        }
     } else {
-        free_addr_space(activePCB->user_page_table, activePCB->kernel_stack_pt);
+         if (free_addr_space(activePCB->user_page_table, activePCB->kernel_stack_pt) == ERROR) {
+            TracePrintf(0,"ERROR: KernelExit, unable to delete process.\n");
+            return ERROR;
+        }
     }
 
-    SwapProcess(swap_q,uctxt);
+    if (SwapProcess(swap_q,uctxt) == ERROR) {
+        TracePrintf(0, "ERROR: KernelExit, Unable to swap process.\n");
+        return ERROR;
+    }
     TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d\n", ready_q->size, blocked_q->size, defunct_q->size);
+
+    return 0;
 }
 
 /**
@@ -167,17 +228,29 @@ int KernelWait(int *status_ptr, UserContext *uctxt) {
     int limit = defunct_q->size;
     for(int i = 0; i < limit; i++) {
         pcb_t *d_pcb = queue_pop(defunct_q);
+
+        if (d_pcb) {
+            TracePrintf(0, "ERROR: KernelWait, Unable to pop from queue.\n");
+            return ERROR;
+        }
+
         if (d_pcb->ppid == activePCB->pid) {
             activePCB->num_children--;
             *status_ptr = d_pcb->exit_code;
             return 0;
         }
-        queue_add(defunct_q, d_pcb, d_pcb->pid);
+        if(queue_add(defunct_q, d_pcb, d_pcb->pid) == ERROR) {
+            TracePrintf(0, "ERROR: KernelWait, unable to add to queue.\n");
+            return ERROR;
+        }
     }
     
     activePCB->blocked_code = BLOCKED_WAIT;
     int set_code_pid = activePCB->pid;
-    SwapProcess(blocked_q, uctxt);
+    if (SwapProcess(blocked_q, uctxt) == ERROR) {
+        TracePrintf(0, "ERROR: KernelWait, unable to swap process.\n");
+        return ERROR;
+    }
 
     if (activePCB->pid == set_code_pid) {
         *status_ptr = activePCB->blocked_code;
@@ -251,9 +324,9 @@ int KernelBrk(void *addr) {
                 TracePrintf(0, "Brk: index -> %d\n", i);
                 // find any pfn
                 int pfn = AllocatePFN();
-                if (pfn == -1) {
+                if (pfn == ERROR) {
                     return ERROR;
-                    free_addr_space(activePCB->user_page_table, activePCB->kernel_stack_pt);
+                    free_addr_space(activePCB->user_page_table, activePCB->kernel_stack_pt); // Talk to KC about this line here...
                 }
                 // set up page table entry permissions
                 activePCB->user_page_table[i].prot = NO_X_W_R;
@@ -275,7 +348,10 @@ int KernelBrk(void *addr) {
             if (activePCB->user_page_table[i].valid == VALID_FRAME) {
                 TracePrintf(0, "index -> %d\n", i);
                 // update pfn_list
-                DeallocatePFN(activePCB->user_page_table[i].pfn);
+                if (DeallocatePFN(activePCB->user_page_table[i].pfn) == ERROR) {
+                    TracePrintf(0, "ERROR: KernelBrk, unable to deallocate PFB.\n");
+                    return ERROR;
+                }
 
                 // set up page table entry
                 activePCB->user_page_table[i].prot = 0;
@@ -312,7 +388,10 @@ int KernelDelay(int clock_ticks, UserContext *uctxt) {
 
     activePCB->clock_ticks = clock_ticks;
     activePCB->blocked_code = BLOCKED_DELAY;
-    SwapProcess(blocked_q,uctxt);
+    if (SwapProcess(blocked_q,uctxt) == ERROR) {
+        TracePrintf(0, "ERROR: KernelDelay, unable to swap processes.\n");
+        return ERROR;
+    }
 
     return 0; 
 

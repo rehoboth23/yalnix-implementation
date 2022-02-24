@@ -20,9 +20,9 @@ list_t *list_init() {
 }
 
 int list_add(list_t *list, void *item) {
-    if (list == NULL) return -1;
+    if (list == NULL) return ERROR;
     lnode_t *node = lnode_init(item);
-    if (node == NULL) return -1;
+    if (node == NULL) return ERROR;
     if (list->head == NULL) {
         list->head = node;
         list->tail = list->head;
