@@ -19,9 +19,15 @@
  * @return pcb_t* 
  */
 pcb_t *init_process(UserContext *uctxt) {
+
+    if (uctxt == NULL) {
+        TracePrintf(0, "Error: User Context null in init_process\n");
+    }
+
     pcb_t *process = malloc(sizeof(pcb_t));
 
     if (process == NULL) {
+        TracePrintf(0, "Error: Init process failed.\n");
         return NULL;
     }
 
@@ -58,8 +64,8 @@ pcb_t *init_process(UserContext *uctxt) {
     if (process->pid != 0) {
         for(int index = 0; index < KERNEL_STACK_SIZE; index++ ) {
             int pfn = AllocatePFN();
-            if (pfn == -1) {
-                TracePrintf(0, "ERROR: Invalid PFN.\n");
+            if (pfn == ERROR) {
+                TracePrintf(0, "ERROR: Invalid PFN in init process.\n");
                 free_addr_space(process->user_page_table, process->kernel_stack_pt);
                 return NULL;
             }
@@ -92,19 +98,33 @@ pcb_t *init_process(UserContext *uctxt) {
  * @param u_pt 
  * @param k_stack 
  */
-void free_addr_space(pte_t *u_pt, pte_t *k_stack) {
+int free_addr_space(pte_t *u_pt, pte_t *k_stack) {
+
+    if (u_pt == NULL || k_stack == NULL) {
+        TracePrintf(0, "ERROR: free_addr_space, null pte_t pointer.\n");
+        return ERROR;
+    }
+
     // loops through kernel stack
     for (int i = 0; i < KERNEL_STACK_SIZE; i++) {
         if (k_stack[i].valid == VALID_FRAME) {
-            DeallocatePFN(k_stack[i].pfn);
+            if (DeallocatePFN(k_stack[i].pfn) == ERROR) {
+                TracePrintf(0, "ERROR: free_addr_space, deallocation k_stack error.\n");
+                return ERROR;
+            }
         }
     }
     // loops through user pagetable
     for (int i = 0; i < USER_PT_SIZE; i++) {
         if (u_pt[i].valid == VALID_FRAME) {
-            DeallocatePFN(u_pt[i].pfn);
+            if (DeallocatePFN(u_pt[i].pfn) == ERROR) {
+                TracePrintf(0, "ERROR: free_addr_space, deallocation u_pt error.\n");
+                return ERROR;
+            }
         }
     }
+
+    return 0;
 }
 
 /**
@@ -112,9 +132,14 @@ void free_addr_space(pte_t *u_pt, pte_t *k_stack) {
  * 
  * @param pcb 
  */
-void delete_process(pcb_t *pcb) {
+int delete_process(pcb_t *pcb) {
+    if (pcb == NULL) {
+        TracePrintf(0, "ERROR: delete_process, null pcb_t pointer.\n");
+        return ERROR;
+    }
     free_addr_space(pcb->user_page_table, pcb->kernel_stack_pt);
     free(pcb);
+    return 0;
 }
 
 /**
@@ -127,6 +152,16 @@ void delete_process(pcb_t *pcb) {
  * @return int 
  */
 int CopyUPT(pte_t *u_pt1, pte_t *u_pt2, pte_t *k_pt, int reserved_kernel_index) {
+
+    if (u_pt1 == NULL || u_pt2 == NULL || k_pt == NULL) {
+        TracePrintf(0, "ERROR: CopyUPT, null pte pointer.\n");
+        return ERROR;
+    }
+
+    if (reserved_kernel_index < 0) {
+        TracePrintf(0, "Error: CopyUPT, reserved_kernel_index < 0\n");
+        return ERROR;
+    }
 
     // region 1 base
     int r1_base = (int) VMEM_1_BASE >> PAGESHIFT;
@@ -177,7 +212,13 @@ int CopyUPT(pte_t *u_pt1, pte_t *u_pt2, pte_t *k_pt, int reserved_kernel_index) 
  * 
  * @param moveActive <-- what is this? the current active process?
  */
-void SwapProcess(queue_t *moveActive, UserContext *uctxt) {
+int SwapProcess(queue_t *moveActive, UserContext *uctxt) {
+
+    if (moveActive == NULL || uctxt == NULL) {
+        TracePrintf(0, "ERROR: SwapProcess, null queue or usercontext pointer.\n");
+        return ERROR;
+    }
+
     queue_t *move;
 
     // if the current process is the idle process, then we don't change process
@@ -208,7 +249,12 @@ void SwapProcess(queue_t *moveActive, UserContext *uctxt) {
         // update ptbr1
         WriteRegister(REG_PTBR1, (unsigned int) next->user_page_table);
         // update the move queue?????????????
-        if (move != NULL) queue_add(move, activePCB, activePCB->pid);
+        if (move != NULL) {
+            if (queue_add(move, activePCB, activePCB->pid) == ERROR) {
+                TracePrintf(0, "ERROR: SwapProcess, null unable to add to queue.\n");
+                return ERROR;
+            }
+        }
         activePCB = next;
 
         KernelContextSwitch(KCSwitch, tmp, next);
@@ -216,5 +262,7 @@ void SwapProcess(queue_t *moveActive, UserContext *uctxt) {
         // update sp and pc of uctxt for the new activePCB
         uctxt->sp = activePCB->user_context.sp;
         uctxt->pc = activePCB->user_context.pc;
+
+        return 0;
     }
 }

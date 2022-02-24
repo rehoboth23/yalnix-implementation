@@ -273,7 +273,6 @@ int LoadProgram(char *name, char *args[], pcb_t *proc)
   /*
    * ==>> (Finally, make sure that there are no stale region1 mappings left in the TLB!)
    */
-
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
   
 

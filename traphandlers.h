@@ -99,7 +99,7 @@ int KernelExec(UserContext *uctxt, char *filename, char **argvec);
  * 
  * @param exit_code 
  */
-void KernelExit(int exit_code, UserContext *uctxt);
+int KernelExit(int exit_code, UserContext *uctxt);
 
 /**
  * @brief 

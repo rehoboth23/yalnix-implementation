@@ -64,9 +64,17 @@ queue_t * queue_init() {
  */
 int queue_add(queue_t *queue, pcb_t *data, int  id) {
     // ensure all the args are valid
-    if (queue == NULL || data == NULL) return -1;
+    if (queue == NULL || data == NULL) {
+        TracePrintf(0, "ERROR: queue_add, queue or data are null\n");
+        return ERROR;
+    } 
+
     qnode_t *node = qnode_init(id, data);
-    if (node == NULL) return -1;
+    if (node == NULL) {
+        TracePrintf(0, "ERROR: queue_add, node is null\n");
+        return ERROR;
+    }
+
     if (queue->head == NULL) {
         queue->head = node; // set head as new node
         queue->tail = node; // set tail as new node

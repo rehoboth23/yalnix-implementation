@@ -99,8 +99,14 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
     if (u_pt == NULL) {
         TracePrintf(0,"ERROR, malloc failed for user page table\n");
     }
-    SetRegion0_pt(k_pt, KERNEL_PT_SIZE);
-    SetRegion1_pt(u_pt, USER_PT_SIZE);
+
+    if (SetRegion0_pt(k_pt, KERNEL_PT_SIZE) == ERROR) {
+        TracePrintf(0,"ERROR, KernelStart, SetRegion0_pt failed.\n");
+    }
+
+    if (SetRegion1_pt(u_pt, USER_PT_SIZE) == ERROR) {
+        TracePrintf(0,"ERROR, KernelStart, SetRegion0_pt failed.\n");
+    }
 
     TracePrintf(0, "REG 0 = %x -> %x\n\t\tREG 1 = %x -> %x\n\t\t krenek_brk = %x\n", k_pt, k_pt +( KERNEL_PT_SIZE * sizeof(pte_t)),  u_pt, u_pt +( USER_PT_SIZE * sizeof(pte_t)), kernel_brk);
     // CLEAN UP REG0 BEFORE ENABLING VM (INCASE OF KERNEL_BRK HAS CHANGES)
@@ -115,23 +121,44 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
     WriteRegister(REG_VM_ENABLE,VM_ENABLED);
 
     // set up all global structures
-    SetUpGlobals();
+    if (SetUpGlobals() == ERROR) {
+        TracePrintf(0,"ERROR: KernelStart, Set up globals failed.\n");
+    }
 
 // ============================= //
 //   SET UP IDLEPCB AND DOIDLE   //
 // ============================= //
 
     idlePCB = init_process(uctxt);
+
+    if (idlePCB == NULL) {
+        TracePrintf(0,"ERROR: KernelStart, idlePCB failed to init.\n");
+    }
+
     int k_stack_base = KERNEL_STACK_BASE >> PAGESHIFT;
-    LoadProgram("progs/idle", &(cmd_args[1]), idlePCB); // idle args start from after kernel args
+
+    if (LoadProgram("progs/idle", &(cmd_args[1]), idlePCB) == ERROR) { // idle args start from after kernel args
+        TracePrintf(0,"ERROR: KernelStart, loadprogram for idle has failed.\n");
+    } 
+
     activePCB = idlePCB;
 
     // FREE UP DUMMY REG1 PT
     free(u_pt);
 
     pcb_t *progPCB = init_process(uctxt);
-    LoadProgram(prog, cmd_args, progPCB);
-    queue_add(ready_q, progPCB, progPCB->pid);
+
+    if (progPCB == NULL) {
+        TracePrintf(0,"ERROR: KernelStart, progPCB failed to init.\n");
+    }
+
+    if (LoadProgram(prog, cmd_args, progPCB) == ERROR) {
+        TracePrintf(0,"ERROR: KernelStart, loadprogram for prog has failed.\n");
+    }
+    
+    if (queue_add(ready_q, progPCB, progPCB->pid) == ERROR) {
+        TracePrintf(0,"ERROR: KernelStart, failed to add prog to ready q.\n");
+    }
 
     WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
     WriteRegister(REG_PTBR1, (unsigned int) idlePCB->user_page_table);
@@ -146,15 +173,25 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
  * @brief Set the Up Globals object
  * 
  */
-void SetUpGlobals() {
+int SetUpGlobals() {
     ready_q = queue_init();
     blocked_q = queue_init();
     defunct_q = queue_init();
     pfn_list = list_init();
 
-    for (int fr_number = num_of_frames - 1; fr_number >= VMEM_1_BASE >> PAGESHIFT; fr_number--) {
-        list_add(pfn_list, (void *) fr_number);
+    if (ready_q == NULL || blocked_q == NULL || defunct_q == NULL || pfn_list == NULL) {
+        TracePrintf(0, "ERROR: SetUpGlobals, initalization of queues failed");
+        return ERROR;
     }
+
+    for (int fr_number = num_of_frames - 1; fr_number >= VMEM_1_BASE >> PAGESHIFT; fr_number--) {
+        if (list_add(pfn_list, (void *) fr_number) == ERROR) {
+            TracePrintf(0, "ERROR: SetUpGlobals, adding to list failed");
+            return ERROR;
+        }
+    }
+
+    return 0;
 }
 
 /**
@@ -163,7 +200,13 @@ void SetUpGlobals() {
  * @param k_pt kernel page table
  * @param k_pt_size kernel page table size
  */
-void SetRegion0_pt(pte_t *k_pt, int k_pt_size) {
+int SetRegion0_pt(pte_t *k_pt, int k_pt_size) {
+
+    if (k_pt == NULL) {
+        TracePrintf(0,"ERROR: SetRegion0_pt received a NULL argument\n");
+        return ERROR;
+    }
+    
     // tell hardware where Region0's page table, (virtual memory base address of page_table)
     WriteRegister(REG_PTBR0, (unsigned)k_pt);
 
@@ -285,6 +328,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size) {
     }
     
     TracePrintf(0,"DEBUG: Done initializing region0 page table\n");
+    return 0;
 }
 
 /**
@@ -294,7 +338,12 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size) {
  * @param u_pt_size user page table size
  * @param uctxt user context
  */
-void SetRegion1_pt(pte_t *u_pt, int u_pt_size) {
+int SetRegion1_pt(pte_t *u_pt, int u_pt_size) {
+
+    if (u_pt == NULL) {
+        TracePrintf(0,"ERROR: SetRegion1_pt received a NULL argument\n");
+        return ERROR;
+    }
 
     TracePrintf(0,"DEBUG: Initializing region1 page table\n");
 
@@ -307,6 +356,8 @@ void SetRegion1_pt(pte_t *u_pt, int u_pt_size) {
     memset(u_pt, 0, sizeof(pte_t) * u_pt_size);
 
     TracePrintf(0,"DEBUG: Done initializing region1 page table\n"); 
+
+    return 0;
 
 }
 
@@ -380,19 +431,22 @@ int SetKernelBrk(void* addr) {
         TracePrintf(1,"ERROR, VM_ENABLED wasn't 0 or 1\n");
         return ERROR;
     }
+
+    return 0;
 }
 
 /**
  * @brief Get a Free PFN
  * 
- * @return int -1 if not free pfn, pfn otherwise
+ * @return int ERROR if not free pfn, pfn otherwise
  */
 int AllocatePFN() {
-    if (pfn_list->size == 0) return -1;
+    if (pfn_list->size == 0) return ERROR;
     int pfn = (int) list_pop(pfn_list);
     TracePrintf(0, "Allocating PFN -> %d\n", pfn);
     if (((void*)pfn == NULL) || (pfn == -1)) {
         TracePrintf(0,"AllocatePFN has failed\n");
+        return ERROR;
     }
     return pfn;
 }
@@ -402,11 +456,14 @@ int AllocatePFN() {
  * 
  * @param pfn 
  */
-void DeallocatePFN(int pfn) {
+int DeallocatePFN(int pfn) {
     TracePrintf(0, "Dellocating PFN -> %d\n", pfn);
     if (list_add(pfn_list, (void *) pfn) == -1) {
         TracePrintf(0,"DeallocatePFN has failed\n");
+        return ERROR;
     }
+
+    return 0;
 }
 
 /**

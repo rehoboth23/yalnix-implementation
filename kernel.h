@@ -32,7 +32,7 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt);
  * @param k_pt kernel page table
  * @param k_pt_size kernel page table size
  */
-void SetRegion0_pt(pte_t *k_pt, int k_pt_size);
+int SetRegion0_pt(pte_t *k_pt, int k_pt_size);
 
 /**
  * @brief function to create the VM for region1 pagetable
@@ -41,7 +41,7 @@ void SetRegion0_pt(pte_t *k_pt, int k_pt_size);
  * @param u_pt_size user page table size
  * @param uctxt user context
  */
-void SetRegion1_pt(pte_t *u_pt, int u_pt_size);
+int SetRegion1_pt(pte_t *u_pt, int u_pt_size);
 
 /**
  * @brief assume that kernel_brk is correct when vm is enabled
@@ -84,7 +84,7 @@ KernelContext *KCSwitch(KernelContext *kc_in, void *pcb1, void *pcb2);
  * @brief Set the Up Globals object
  * 
  */
-void SetUpGlobals(); 
+int SetUpGlobals(); 
 
 /*
  * ==>> Declare the argument "proc" to be a pointer to the PCB of
@@ -105,14 +105,14 @@ int AllocatePFN();
  * 
  * @param pfn 
  */
-void DeallocatePFN(int pfn);
+int DeallocatePFN(int pfn);
 
 /**
  * @brief 
  * 
  * @param uctxt 
  */
-void SwapProcess(queue_t *moveActive,UserContext *uctxt);
+int SwapProcess(queue_t *moveActive,UserContext *uctxt);
 
 /**
  * @brief 
