@@ -24,9 +24,9 @@ int main(int argc, char const *argv[]) {
 
     int rc = 0;
     while (Wait(&rc) != -1) {
-        TracePrintf(0,  "Nala wait_exit program (parent):\n\tPID -> %d\n\tPPID -> %d\n\tmessage: child has exited with code (%d)\n", pid, ppid, rc);
+        TracePrintf(1,  "wait_exit.c: PID -> %d\tmessage: child has exited with code (%d)\n", pid, rc);
     }
 
-    TracePrintf(0, "Exiting out of wait_exit (parent (pid %d))\n", pid);
+    TracePrintf(1, "wait_exit.c: Exiting out of wait_exit (pid %d)\n", pid);
     return 0;
 }
