@@ -6,9 +6,13 @@ Please let us know if we can make anything clearer for the next checkpoint.
 
 ## What We Did
 
+In `syscalls.c` we have the code for `Fork`, `Wait`, `Delay`, `Exec` etc.
 
+We've done lots of testing, check the testing section below!
 
 **How did we implement round robin?**
+
+- by using a queue to represent ready processes, when the ClockInterrupt is triggered, we get the process at the front of the ready queue, and move the previously-active process to the back of the queue
 
 
 
@@ -19,14 +23,6 @@ We're no longer using a bit_vector to keep track of free frames but a linked lis
 
 
 Also, we've separated code for syscalls and the interrupt vector table to avoid scrolling. Our Kernel syscalls are in `syscalls.c`, but the interrupt vector table and the CASE statements that call these functions are still in `traphandlers.c`.
-
-
-
-
-
-
-
-
 
 ## Testing
 
