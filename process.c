@@ -214,8 +214,8 @@ int CopyUPT(pte_t *u_pt1, pte_t *u_pt2, pte_t *k_pt, int reserved_kernel_index) 
  */
 int SwapProcess(queue_t *moveActive, UserContext *uctxt) {
 
-    if (moveActive == NULL || uctxt == NULL) {
-        TracePrintf(0, "ERROR: SwapProcess, null queue or usercontext pointer.\n");
+    if (uctxt == NULL) {
+        TracePrintf(0, "ERROR: SwapProcess, null usercontext pointer.\n");
         return ERROR;
     }
 
