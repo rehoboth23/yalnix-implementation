@@ -5,8 +5,8 @@ Hardware   ----
 Hardware   | Calling KernelStart
 Hardware   ----
 Yalnix     DEBUG: Entering KernelStart
-Hardware       | WriteRegister(REG_VECTOR_BASE,0x028aa0)
-Yalnix     Interrupt vector table is at: 28aa0
+Hardware       | WriteRegister(REG_VECTOR_BASE,0x029760)
+Yalnix     Interrupt vector table is at: 29760
 Yalnix     DEBUG: Starting to initialize region0 page table
 Yalnix     DEBUG: Starting to initialize region 1 page table, just stack though
 Hardware       | WriteRegister(REG_PTBR0,0x02a830)
@@ -14,37 +14,37 @@ Hardware       | WriteRegister(REG_PTLR0,0x000080)
 Yalnix     	~~~vp0 = 0~~~
 Yalnix     	~~~pf0 = 0~~~
 Yalnix     DEBUG: values provided
- data start: 27bb8
+ data start: 28888
  data end: 32000
  kernel brk: 32000
  orig kernel brk: 32000
  stack base: fc000
  stack limit: 100000
-Yalnix     ~~~.text: pt_index = 0,low = 0, high = 19 => pfn = 0~~~
-Yalnix     ~~~.text: pt_index = 1,low = 0, high = 19 => pfn = 1~~~
-Yalnix     ~~~.text: pt_index = 2,low = 0, high = 19 => pfn = 2~~~
-Yalnix     ~~~.text: pt_index = 3,low = 0, high = 19 => pfn = 3~~~
-Yalnix     ~~~.text: pt_index = 4,low = 0, high = 19 => pfn = 4~~~
-Yalnix     ~~~.text: pt_index = 5,low = 0, high = 19 => pfn = 5~~~
-Yalnix     ~~~.text: pt_index = 6,low = 0, high = 19 => pfn = 6~~~
-Yalnix     ~~~.text: pt_index = 7,low = 0, high = 19 => pfn = 7~~~
-Yalnix     ~~~.text: pt_index = 8,low = 0, high = 19 => pfn = 8~~~
-Yalnix     ~~~.text: pt_index = 9,low = 0, high = 19 => pfn = 9~~~
-Yalnix     ~~~.text: pt_index = 10,low = 0, high = 19 => pfn = 10~~~
-Yalnix     ~~~.text: pt_index = 11,low = 0, high = 19 => pfn = 11~~~
-Yalnix     ~~~.text: pt_index = 12,low = 0, high = 19 => pfn = 12~~~
-Yalnix     ~~~.text: pt_index = 13,low = 0, high = 19 => pfn = 13~~~
-Yalnix     ~~~.text: pt_index = 14,low = 0, high = 19 => pfn = 14~~~
-Yalnix     ~~~.text: pt_index = 15,low = 0, high = 19 => pfn = 15~~~
-Yalnix     ~~~.text: pt_index = 16,low = 0, high = 19 => pfn = 16~~~
-Yalnix     ~~~.text: pt_index = 17,low = 0, high = 19 => pfn = 17~~~
-Yalnix     ~~~.text: pt_index = 18,low = 0, high = 19 => pfn = 18~~~
-Yalnix     ~~~.data: pt_index = 19,low = 19, high = 25 => pfn = 19~~~
-Yalnix     ~~~.data: pt_index = 20,low = 19, high = 25 => pfn = 20~~~
-Yalnix     ~~~.data: pt_index = 21,low = 19, high = 25 => pfn = 21~~~
-Yalnix     ~~~.data: pt_index = 22,low = 19, high = 25 => pfn = 22~~~
-Yalnix     ~~~.data: pt_index = 23,low = 19, high = 25 => pfn = 23~~~
-Yalnix     ~~~.data: pt_index = 24,low = 19, high = 25 => pfn = 24~~~
+Yalnix     ~~~.text: pt_index = 0,low = 0, high = 20 => pfn = 0~~~
+Yalnix     ~~~.text: pt_index = 1,low = 0, high = 20 => pfn = 1~~~
+Yalnix     ~~~.text: pt_index = 2,low = 0, high = 20 => pfn = 2~~~
+Yalnix     ~~~.text: pt_index = 3,low = 0, high = 20 => pfn = 3~~~
+Yalnix     ~~~.text: pt_index = 4,low = 0, high = 20 => pfn = 4~~~
+Yalnix     ~~~.text: pt_index = 5,low = 0, high = 20 => pfn = 5~~~
+Yalnix     ~~~.text: pt_index = 6,low = 0, high = 20 => pfn = 6~~~
+Yalnix     ~~~.text: pt_index = 7,low = 0, high = 20 => pfn = 7~~~
+Yalnix     ~~~.text: pt_index = 8,low = 0, high = 20 => pfn = 8~~~
+Yalnix     ~~~.text: pt_index = 9,low = 0, high = 20 => pfn = 9~~~
+Yalnix     ~~~.text: pt_index = 10,low = 0, high = 20 => pfn = 10~~~
+Yalnix     ~~~.text: pt_index = 11,low = 0, high = 20 => pfn = 11~~~
+Yalnix     ~~~.text: pt_index = 12,low = 0, high = 20 => pfn = 12~~~
+Yalnix     ~~~.text: pt_index = 13,low = 0, high = 20 => pfn = 13~~~
+Yalnix     ~~~.text: pt_index = 14,low = 0, high = 20 => pfn = 14~~~
+Yalnix     ~~~.text: pt_index = 15,low = 0, high = 20 => pfn = 15~~~
+Yalnix     ~~~.text: pt_index = 16,low = 0, high = 20 => pfn = 16~~~
+Yalnix     ~~~.text: pt_index = 17,low = 0, high = 20 => pfn = 17~~~
+Yalnix     ~~~.text: pt_index = 18,low = 0, high = 20 => pfn = 18~~~
+Yalnix     ~~~.text: pt_index = 19,low = 0, high = 20 => pfn = 19~~~
+Yalnix     ~~~.data: pt_index = 20,low = 20, high = 25 => pfn = 20~~~
+Yalnix     ~~~.data: pt_index = 21,low = 20, high = 25 => pfn = 21~~~
+Yalnix     ~~~.data: pt_index = 22,low = 20, high = 25 => pfn = 22~~~
+Yalnix     ~~~.data: pt_index = 23,low = 20, high = 25 => pfn = 23~~~
+Yalnix     ~~~.data: pt_index = 24,low = 20, high = 25 => pfn = 24~~~
 Yalnix     ~~~stack: pt_index = 126,low = 126, high = 128 => pfn = 126~~~
 Yalnix     ~~~stack: pt_index = 127,low = 126, high = 128 => pfn = 127~~~
 Yalnix     DEBUG: Done initializing region0 page table
@@ -92,26 +92,26 @@ Hardware       | WriteRegister(REG_TLB_FLUSH,0x06x, page 1056768)
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x022f96
-Hardware   | From kernelmode SP [region 0] 0xff530 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x02327d
+Hardware   | From kernelmode SP [region 0] 0xff530 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware       | WriteRegister(REG_TLB_FLUSH,0x06x, page 1024000)
 Hardware       ----
 Hardware       | TLB miss p:125  -> pfn:133
-Hardware       | In SP [kcs stack] 0xf7ebca0c | PC [region 0] 0x24816
+Hardware       | In SP [kcs stack] 0xf7f01a0c | PC [region 0] 0x24d62
 Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware       ----
 Hardware       | WriteRegister(REG_TLB_FLUSH,0x06x, page 1024000)
 Hardware       ----
 Hardware       | TLB miss p:125  -> pfn:134
-Hardware       | In SP [kcs stack] 0xf7ebca0c | PC [region 0] 0x24816
+Hardware       | In SP [kcs stack] 0xf7f01a0c | PC [region 0] 0x24d62
 Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware       ----
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x022f96
-Hardware   | Going to kernelmode SP [region 0] 0xff530 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x02327d
+Hardware   | Going to kernelmode SP [region 0] 0xff530 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Yalnix     Exiting KernelStart...
@@ -145,7 +145,7 @@ Hardware   ----
 Hardware   | Syscall trap Brk
 Hardware   | From usermode  SP [region 1] 0x1ffe24 | PC [region 1] 0x1004fa
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (Brk)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (Brk)
 Hardware   ----
 Yalnix     We got code: abcdef06
 Yalnix     kernel calling Brk(1114112)
@@ -159,7 +159,7 @@ Yalnix     Allocating PFN -> 142
 Yalnix     Brk: index -> 7
 Yalnix     Allocating PFN -> 143
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x218f1 for trap TRAP_KERNEL (Brk)
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (Brk)
 Hardware   | Off to usermode SP [region 1] 0x1ffe24 | PC [region 1] 0x1004fa
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
@@ -167,12 +167,12 @@ Hardware   ----
 Hardware   | Syscall trap GetPid
 Hardware   | From usermode  SP [region 1] 0x1ffec0 | PC [region 1] 0x1004c4
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (GetPid)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (GetPid)
 Hardware   ----
 Yalnix     We got code: abcdef05
 Yalnix     kernel calling GetPid()
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x218f1 for trap TRAP_KERNEL (GetPid)
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (GetPid)
 Hardware   | Off to usermode SP [region 1] 0x1ffec0 | PC [region 1] 0x1004c4
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
@@ -181,25 +181,25 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 0
 Yalnix     Ready -> 1 ::: Blocked -> 0 ::: Defunct -> 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02eec8)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 126 127
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff530 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff530 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Yalnix     Exiting KernelStart...
@@ -216,24 +216,24 @@ Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:131  -> pfn:138
-Hardware       | In SP [region 1] 0x1ffec4 | PC [region 1] 0x1004cf
+Hardware       | In SP [region 1] 0x1ffec4 | PC [region 1] 0x1004c8
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:129  -> pfn:136
-Hardware       | In SP [region 1] 0x1ffe6c | PC [region 1] 0x102136
+Hardware       | In SP [region 1] 0x1ffe6c | PC [region 1] 0x10212f
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:130  -> pfn:137
-Hardware       | In SP [region 1] 0x1ffe90 | PC [region 1] 0x10116a
+Hardware       | In SP [region 1] 0x1ffe90 | PC [region 1] 0x101163
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware   ----
 Hardware   | Syscall trap Brk
-Hardware   | From usermode  SP [region 1] 0x1ffe24 | PC [region 1] 0x100524
+Hardware   | From usermode  SP [region 1] 0x1ffe24 | PC [region 1] 0x10051d
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (Brk)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (Brk)
 Hardware   ----
 Yalnix     We got code: abcdef06
 Yalnix     kernel calling Brk(1114112)
@@ -247,50 +247,50 @@ Yalnix     Allocating PFN -> 146
 Yalnix     Brk: index -> 7
 Yalnix     Allocating PFN -> 147
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x218f1 for trap TRAP_KERNEL (Brk)
-Hardware   | Off to usermode SP [region 1] 0x1ffe24 | PC [region 1] 0x100524
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (Brk)
+Hardware   | Off to usermode SP [region 1] 0x1ffe24 | PC [region 1] 0x10051d
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware   ----
 Hardware   | Syscall trap GetPid
-Hardware   | From usermode  SP [region 1] 0x1ffec0 | PC [region 1] 0x1004ee
+Hardware   | From usermode  SP [region 1] 0x1ffec0 | PC [region 1] 0x1004e7
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (GetPid)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (GetPid)
 Hardware   ----
 Yalnix     We got code: abcdef05
 Yalnix     kernel calling GetPid()
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x218f1 for trap TRAP_KERNEL (GetPid)
-Hardware   | Off to usermode SP [region 1] 0x1ffec0 | PC [region 1] 0x1004ee
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (GetPid)
+Hardware   | Off to usermode SP [region 1] 0x1ffec0 | PC [region 1] 0x1004e7
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
-User Prog  init.c: PID -> 1	PPID -> 0
+User Prog  init.c: PID -> 1
 Hardware   ----
 Hardware   | Syscall trap Delay
-Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (Delay)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
 Hardware   ----
 Yalnix     We got code: abcdef07
 Yalnix     kernel calling Delay(1)
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 133 134
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 1
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware       ----
@@ -313,15 +313,15 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 1
 Yalnix     Ready -> 0 ::: Blocked -> 1 ::: Defunct -> 0
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 User Prog  Nala idle program :
@@ -329,79 +329,79 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 2
 Yalnix     Ready -> 1 ::: Blocked -> 0 ::: Defunct -> 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02eec8)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 126 127
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x218f1 for trap TRAP_KERNEL (Delay)
-Hardware   | Off to usermode SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
+Hardware   | Off to usermode SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware       ----
 Hardware       | TLB miss p:128  -> pfn:135
-Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:131  -> pfn:138
-Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x10112b
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101124
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:129  -> pfn:136
-Hardware       | In SP [region 1] 0x1ffe5c | PC [region 1] 0x102136
+Hardware       | In SP [region 1] 0x1ffe5c | PC [region 1] 0x10212f
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:130  -> pfn:137
-Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x10116a
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101163
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
-User Prog  init.c: delay 2: PID -> 1	PPID -> 0
+User Prog  init.c: delay 2: PID -> 1
 Hardware   ----
 Hardware   | Syscall trap Delay
-Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (Delay)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
 Hardware   ----
 Yalnix     We got code: abcdef07
 Yalnix     kernel calling Delay(2)
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 133 134
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 1
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware       ----
@@ -424,15 +424,15 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 3
 Yalnix     Ready -> 0 ::: Blocked -> 1 ::: Defunct -> 0
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 User Prog  Nala idle program :
@@ -440,15 +440,15 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 4
 Yalnix     Ready -> 0 ::: Blocked -> 1 ::: Defunct -> 0
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 User Prog  Nala idle program :
@@ -456,79 +456,79 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 5
 Yalnix     Ready -> 1 ::: Blocked -> 0 ::: Defunct -> 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02eec8)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 126 127
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x218f1 for trap TRAP_KERNEL (Delay)
-Hardware   | Off to usermode SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
+Hardware   | Off to usermode SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware       ----
 Hardware       | TLB miss p:128  -> pfn:135
-Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:131  -> pfn:138
-Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x10112b
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101124
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:129  -> pfn:136
-Hardware       | In SP [region 1] 0x1ffe5c | PC [region 1] 0x102136
+Hardware       | In SP [region 1] 0x1ffe5c | PC [region 1] 0x10212f
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:130  -> pfn:137
-Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x10116a
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101163
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
-User Prog  init.c: delay 3: PID -> 1	PPID -> 0
+User Prog  init.c: delay 3: PID -> 1
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 6
 Yalnix     Ready -> 0 ::: Blocked -> 0 ::: Defunct -> 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 133 134
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 1
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware       ----
@@ -551,79 +551,79 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 7
 Yalnix     Ready -> 1 ::: Blocked -> 0 ::: Defunct -> 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02eec8)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 126 127
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware       ----
 Hardware       | TLB miss p:129  -> pfn:136
-Hardware       | In SP [region 1] 0x1ffed0 | PC [region 1] 0x1020a5
+Hardware       | In SP [region 1] 0x1ffed0 | PC [region 1] 0x10209e
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:128  -> pfn:135
-Hardware       | In SP [region 1] 0x1ffee0 | PC [region 1] 0x100303
+Hardware       | In SP [region 1] 0x1ffee0 | PC [region 1] 0x1002fc
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:131  -> pfn:138
-Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x102143
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x10213c
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
-User Prog  init.c: PID -> 1	PPID -> 0
+User Prog  init.c: PID -> 1
 Hardware       ----
 Hardware       | TLB miss p:130  -> pfn:137
-Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x10116a
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101163
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware   ----
 Hardware   | Syscall trap Delay
-Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (Delay)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
 Hardware   ----
 Yalnix     We got code: abcdef07
 Yalnix     kernel calling Delay(1)
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 133 134
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 1
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware       ----
@@ -646,15 +646,15 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 8
 Yalnix     Ready -> 0 ::: Blocked -> 1 ::: Defunct -> 0
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 User Prog  Nala idle program :
@@ -662,79 +662,79 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 9
 Yalnix     Ready -> 1 ::: Blocked -> 0 ::: Defunct -> 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02eec8)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 126 127
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 0
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x218f1 for trap TRAP_KERNEL (Delay)
-Hardware   | Off to usermode SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
+Hardware   | Off to usermode SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware   ----
 Hardware       ----
 Hardware       | TLB miss p:128  -> pfn:135
-Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:131  -> pfn:138
-Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x10112b
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101124
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:129  -> pfn:136
-Hardware       | In SP [region 1] 0x1ffe5c | PC [region 1] 0x102136
+Hardware       | In SP [region 1] 0x1ffe5c | PC [region 1] 0x10212f
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
 Hardware       ----
 Hardware       | TLB miss p:130  -> pfn:137
-Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x10116a
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101163
 Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
 Hardware       ----
-User Prog  init.c: delay 2: PID -> 1	PPID -> 0
+User Prog  init.c: delay 2: PID -> 1
 Hardware   ----
 Hardware   | Syscall trap Delay
-Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x100553
+Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
 Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
-Hardware   | Calling Yalnix handler 0x218f1 for trap TRAP_KERNEL (Delay)
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
 Hardware   ----
 Yalnix     We got code: abcdef07
 Yalnix     kernel calling Delay(2)
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
 Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
 Hardware   ----
-Hardware   | On [kcs stack] invoking  MyKCS function 0x023170
-Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 133 134
 Hardware   ----
 Yalnix     KCSwitch called! curr process id: 1
 Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
 Yalnix     done with KCSwitch, returning next_pcb kernel context
 Hardware   ----
-Hardware   | On [kcs stack] returning from MyKCS function 0x023170
-Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7ea781e
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
 Hardware       ----
@@ -757,17 +757,223 @@ User Prog  Nala idle program :
 	PPID -> 0
 Hardware   ----
 Hardware   | Trap Alarm clock
-Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
-Hardware   | Calling Yalnix handler 0x21b11 for trap TRAP_CLOCK
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
 Hardware   ----
 Yalnix     Clock Tick -> 10
 Yalnix     Ready -> 0 ::: Blocked -> 1 ::: Defunct -> 0
 Hardware   ----
-Hardware   | Back from Yalnix handler 0x21b11 for trap TRAP_CLOCK
-Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7ef2559
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
 Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
 Hardware   ----
+User Prog  Nala idle program :
+	PID -> 0
+	PPID -> 0
+Hardware   ----
+Hardware   | Trap Alarm clock
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   ----
+Yalnix     Clock Tick -> 11
+Yalnix     Ready -> 0 ::: Blocked -> 1 ::: Defunct -> 0
+Hardware   ----
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   ----
+User Prog  Nala idle program :
+	PID -> 0
+	PPID -> 0
+Hardware   ----
+Hardware   | Trap Alarm clock
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   ----
+Yalnix     Clock Tick -> 12
+Yalnix     Ready -> 1 ::: Blocked -> 0 ::: Defunct -> 0
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
+Hardware       | WriteRegister(REG_PTBR1,0x02eec8)
+Hardware   ----
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 126 127
+Hardware   ----
+Yalnix     KCSwitch called! curr process id: 0
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
+Yalnix     done with KCSwitch, returning next_pcb kernel context
+Hardware   ----
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware   ----
+Hardware   ----
+Hardware   | Back from Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
+Hardware   | Off to usermode SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware   ----
+Hardware       ----
+Hardware       | TLB miss p:128  -> pfn:135
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:131  -> pfn:138
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101124
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:129  -> pfn:136
+Hardware       | In SP [region 1] 0x1ffe5c | PC [region 1] 0x10212f
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:130  -> pfn:137
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101163
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+User Prog  init.c: delay 3: PID -> 1
+Hardware   ----
+Hardware   | Trap Alarm clock
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   ----
+Yalnix     Clock Tick -> 13
+Yalnix     Ready -> 0 ::: Blocked -> 0 ::: Defunct -> 0
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
+Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
+Hardware   ----
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 133 134
+Hardware   ----
+Yalnix     KCSwitch called! curr process id: 1
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
+Yalnix     done with KCSwitch, returning next_pcb kernel context
+Hardware   ----
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   ----
+Hardware   ----
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   ----
+Hardware       ----
+Hardware       | TLB miss p:129  -> pfn:129
+Hardware       | In SP [region 1] 0x1ffed0 | PC [region 1] 0x10207b
+Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:128  -> pfn:128
+Hardware       | In SP [region 1] 0x1ffee0 | PC [region 1] 0x1002c8
+Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:131  -> pfn:131
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x102119
+Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware       ----
+User Prog  Nala idle program :
+	PID -> 0
+	PPID -> 0
+Hardware   ----
+Hardware   | Trap Alarm clock
+Hardware   | From usermode  SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   | Calling Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   ----
+Yalnix     Clock Tick -> 14
+Yalnix     Ready -> 1 ::: Blocked -> 0 ::: Defunct -> 0
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
+Hardware       | WriteRegister(REG_PTBR1,0x02eec8)
+Hardware   ----
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 126 127
+Hardware   ----
+Yalnix     KCSwitch called! curr process id: 0
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
+Yalnix     done with KCSwitch, returning next_pcb kernel context
+Hardware   ----
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware   ----
+Hardware   ----
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware   ----
+Hardware       ----
+Hardware       | TLB miss p:129  -> pfn:136
+Hardware       | In SP [region 1] 0x1ffed0 | PC [region 1] 0x10209e
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:128  -> pfn:135
+Hardware       | In SP [region 1] 0x1ffee0 | PC [region 1] 0x1002fc
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:131  -> pfn:138
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x10213c
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+User Prog  init.c: PID -> 1
+Hardware       ----
+Hardware       | TLB miss p:130  -> pfn:137
+Hardware       | In SP [region 1] 0x1ffe80 | PC [region 1] 0x101163
+Hardware       | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware       ----
+Hardware   ----
+Hardware   | Syscall trap Delay
+Hardware   | From usermode  SP [region 1] 0x1ffeb0 | PC [region 1] 0x10054c
+Hardware   | pid 1 | PTBR1 0x02eec8 | kstack 133 134
+Hardware   | Calling Yalnix handler 0x21a67 for trap TRAP_KERNEL (Delay)
+Hardware   ----
+Yalnix     We got code: abcdef07
+Yalnix     kernel calling Delay(1)
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_1)
+Hardware       | WriteRegister(REG_PTBR1,0x02ead0)
+Hardware   ----
+Hardware   | On [kcs stack] invoking  MyKCS function 0x023457
+Hardware   | From kernelmode SP [region 0] 0xff4f0 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 133 134
+Hardware   ----
+Yalnix     KCSwitch called! curr process id: 1
+Hardware       | WriteRegister(REG_TLB_FLUSH,TLB_FLUSH_0)
+Yalnix     done with KCSwitch, returning next_pcb kernel context
+Hardware   ----
+Hardware   | On [kcs stack] returning from MyKCS function 0x023457
+Hardware   | Going to kernelmode SP [region 0] 0xff510 | PC [libhardware.so] 0xf7eec81e
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   ----
+Hardware   ----
+Hardware   | Back from Yalnix handler 0x21c87 for trap TRAP_CLOCK
+Hardware   | Off to usermode SP [region 1] 0x1ffd80 | PC [vdso] 0xf7f37559
+Hardware   | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware   ----
+Hardware       ----
+Hardware       | TLB miss p:129  -> pfn:129
+Hardware       | In SP [region 1] 0x1ffed0 | PC [region 1] 0x10207b
+Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:128  -> pfn:128
+Hardware       | In SP [region 1] 0x1ffee0 | PC [region 1] 0x1002c8
+Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware       ----
+Hardware       ----
+Hardware       | TLB miss p:131  -> pfn:131
+Hardware       | In SP [region 1] 0x1ffeb0 | PC [region 1] 0x102119
+Hardware       | pid 0 | PTBR1 0x02ead0 | kstack 126 127
+Hardware       ----
 User Prog  Nala idle program :
 	PID -> 0
 	PPID -> 0

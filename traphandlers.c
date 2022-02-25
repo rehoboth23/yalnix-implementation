@@ -102,7 +102,9 @@ void TrapClockHandler(void *ctx) {
     TracePrintf(0, "Clock Tick -> %d\n", global_clock_ticks);
     TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d\n", ready_q->size, blocked_q->size, defunct_q->size);
     global_clock_ticks++;
+    // if (ready_q->size > 0) { 
     SwapProcess(ready_q,(UserContext *)ctx);
+    // }
     int limit = blocked_q->size;
     for (int i = 0; i < limit; i++) {
        pcb_t *pcb = queue_pop(blocked_q);

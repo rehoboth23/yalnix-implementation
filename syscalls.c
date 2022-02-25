@@ -54,12 +54,7 @@ int KernelFork(UserContext *uctxt) {
     if (CopyUPT(activePCB->user_page_table, childPCB->user_page_table, k_pt, reserved_kernel_index) == ERROR) {
         TracePrintf(0,"ERROR: KernelFork, failed to CopyUPT\n");
         return ERROR;
-    }
-
-    if (free_addr_space(childPCB->user_page_table, childPCB->kernel_stack_pt) == ERROR) {
-        TracePrintf(0,"ERROR: KernelFork, failed to free address space\n");
-        return ERROR;
-    }
+}
 
     // free kernel index when done (make invalid)
     k_pt[reserved_kernel_index].pfn = 0;
