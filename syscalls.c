@@ -156,7 +156,6 @@ int KernelExit(int exit_code, UserContext *uctxt) {
                 }
                 continue;
             } else if (b_pcb->pid == activePCB->ppid) {
-                b_pcb->num_children--;
                 TracePrintf(0, "~~~ Children left -> %d children\n", b_pcb->num_children);
                 swap_q = defunct_q;
             } else if (b_pcb->ppid == activePCB->pid) {
@@ -224,7 +223,7 @@ int KernelWait(int *status_ptr, UserContext *uctxt) {
     for(int i = 0; i < limit; i++) {
         pcb_t *d_pcb = queue_pop(defunct_q);
 
-        if (d_pcb) {
+        if (d_pcb == NULL) {
             TracePrintf(0, "ERROR: KernelWait, Unable to pop from queue.\n");
             return ERROR;
         }
