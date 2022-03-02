@@ -29,6 +29,10 @@ queue_t *defunct_q;
 list_t *pfn_list;
 int global_clock_ticks;
 pcb_t *idlePCB;
+queue_t *ttyReadQueues[NUM_TERMINALS];
+queue_t *ttyWriteQueues[NUM_TERMINALS];
+char *ttyReadbuffers[NUM_TERMINALS];
+int ttyWriteTrackers[NUM_TERMINALS];
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -178,6 +182,14 @@ int SetUpGlobals() {
     blocked_q = queue_init();
     defunct_q = queue_init();
     pfn_list = list_init();
+    for (int i = 0; i < NUM_TERMINALS; i++) {
+        ttyReadQueues[i] = queue_init();
+        ttyWriteQueues[i] = queue_init();
+        ttyReadbuffers[i] = malloc(TERMINAL_MAX_LINE * sizeof(char));
+        ttyWriteTrackers[i] = TERMINAL_OPEN;
+        memset(ttyReadbuffers[i], 0, TERMINAL_MAX_LINE);
+    }
+
 
     if (ready_q == NULL || blocked_q == NULL || defunct_q == NULL || pfn_list == NULL) {
         TracePrintf(0, "ERROR: SetUpGlobals, initalization of queues failed");
@@ -476,8 +488,7 @@ queue_t *CheckBlocked(pcb_t *pcb) {
 
     if (pcb == NULL) return NULL;
 
-    switch (pcb->blocked_code)
-    {
+    switch (pcb->blocked_code) {
     case BLOCKED_DELAY:
         if (pcb->clock_ticks > 0) {
             pcb->clock_ticks--;
@@ -485,6 +496,22 @@ queue_t *CheckBlocked(pcb_t *pcb) {
             pcb->blocked_code = NOT_BLOCKED;
             return ready_q;
         }
+        break;
+    case BLOCKED_TTY_WRITE:
+        if (queue_peek(ttyWriteQueues[pcb->tty_terminal])->pid == pcb->pid) {
+            queue_pop(ttyWriteQueues[pcb->tty_terminal]);
+            pcb->blocked_code = NOT_BLOCKED;
+            pcb->tty_terminal = 0;
+            return ready_q;
+        }
+        break;
+    case BLOCKED_TTY_TRANSMIT:
+        if (ttyWriteTrackers[pcb->tty_terminal] == TERMINAL_OPEN) {
+            pcb->blocked_code = NOT_BLOCKED;
+            pcb->tty_terminal = 0;
+            return ready_q;
+        }
+        break;
     default:
         break;
     }

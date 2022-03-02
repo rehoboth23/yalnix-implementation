@@ -35,7 +35,13 @@ enum {
     NOT_BLOCKED           =    0,
     BLOCKED_DELAY         =    1, 
     BLOCKED_WAIT          =    2,
+    BLOCKED_TTY_READ      =    3,
+    BLOCKED_TTY_WRITE     =    4,
+    BLOCKED_TTY_TRANSMIT  =    5,
 
+    // TTY I/O 
+    TERMINAL_OPEN         =    1,
+    TERMINAL_CLOSED       =    0,
 };
 
 #endif

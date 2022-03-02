@@ -149,6 +149,10 @@ extern queue_t *defunct_q;
 extern list_t *pfn_list;
 extern int global_clock_ticks;
 extern pcb_t *idlePCB;
+extern queue_t *ttyReadQueues[NUM_TERMINALS];
+extern queue_t *ttyWriteQueues[NUM_TERMINALS];
+extern char *ttyReadbuffers[NUM_TERMINALS];
+extern int ttyWriteTrackers[NUM_TERMINALS];
 
 // tick interval of clock
 #define tick_interval DEFAULT_TICK_INTERVAL;

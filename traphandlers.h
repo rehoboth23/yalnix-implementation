@@ -142,12 +142,24 @@ int KernelDelay(int clock_ticks, UserContext *uctxt);
 /**
  * @brief 
  * 
+ * @param uctxt
  * @param tty_id 
  * @param buf 
  * @param len 
  * @return int 
  */
-int KernelTtyRead(int tty_id, void *buf, int len);
+int KernelTtyRead(UserContext *uctxt, int tty_id, void *buf, int len);
+
+/**
+ * @brief 
+ * 
+ * @param uctxt
+ * @param tty_id 
+ * @param buf 
+ * @param len 
+ * @return int 
+ */
+int KernelTtyWrite(UserContext *uctxt, int tty_id, void *buf, int len);
 
 /**
  * @brief 

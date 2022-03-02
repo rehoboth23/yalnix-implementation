@@ -118,6 +118,31 @@ pcb_t *queue_pop(queue_t *queue) {
 }
 
 /**
+ * @brief function to peek at the head of a queue
+ * 
+ * @param queue the queue to peek into
+ * @return pcb_t* head of the queue
+ */
+pcb_t *queue_peek(queue_t *queue) {
+    if (queue == NULL) return NULL;
+    else if(queue->size == 0) return NULL;
+    return queue->head->data;
+}
+
+/**
+ * @brief get size of the queue
+ * 
+ * @param queue 
+ * @return int 
+ * size of queu
+ * -1 if something went wrong.
+ */
+int queue_size(queue_t *queue) {
+    if (queue == NULL) return ERROR;
+    return queue->size;
+}
+
+/**
  * @brief finds if given queue contains item with given id
  * 
  * @param queue pointer to queue

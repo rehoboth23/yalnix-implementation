@@ -35,6 +35,7 @@ typedef struct PCB {
     pte_t kernel_stack_pt[KERNEL_STACK_SIZE];    // kernel stack for process
 
     int blocked_code; // code for why the process is blocked
+    int tty_terminal;
     int return_code;
 
 } pcb_t;
