@@ -102,7 +102,7 @@ void TrapKernelHandler(void *ctx) {
  */
 void TrapClockHandler(void *ctx) {
     TracePrintf(0, "Clock Tick -> %d\n", global_clock_ticks);
-    TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d\n", ready_q->size, blocked_q->size, defunct_q->size);
+    TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d ::: TtyRead %d ::: TtyWrite %d\n", ready_q->size, blocked_q->size, defunct_q->size, ttyReadQueues[0]->size, ttyWriteQueues[0]->size);
     global_clock_ticks++;
     // if (ready_q->size > 0) { 
     SwapProcess(ready_q,(UserContext *)ctx);
@@ -111,6 +111,14 @@ void TrapClockHandler(void *ctx) {
     for (int i = 0; i < limit; i++) {
        pcb_t *pcb = queue_pop(blocked_q);
        if (pcb != NULL) queue_add(CheckBlocked(pcb), pcb, pcb->pid);
+    }
+    for (int i = 0; i < 4; i++) {
+        queue_t *ttyQueue = ttyWriteQueues[i];
+        limit = ttyQueue->size;
+        if (ttyQueue->size > 0) {
+            pcb_t *pcb = queue_peek(ttyQueue);
+            queue_add(CheckBlocked(pcb), pcb, pcb->pid);
+        }
     }
 }
 
@@ -121,8 +129,8 @@ void TrapClockHandler(void *ctx) {
  */
 void TrapIllegalHandler(void *ctx) {
     UserContext *uctxt = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
-    // same as TrapMathHandler
+    TracePrintf(0,"TrapIllegalHandler: Illegal Instruction\n");
+    KernelExit(0, uctxt);
 }
 
 /**
@@ -132,7 +140,25 @@ void TrapIllegalHandler(void *ctx) {
  */
 void TrapMemoryHandler(void *ctx) {
     UserContext *uctxt = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
+    int code = uctxt->code;
+    void *addr = uctxt->addr;
+
+    if ( (int) addr > VMEM_1_LIMIT || (int) addr < VMEM_0_BASE) {
+        TracePrintf(0, "TrapMemoryHandler: Invalid Address\n");
+        KernelExit(-1, uctxt);
+    }
+
+    switch (code) {
+    case YALNIX_MAPERR:
+        TracePrintf(0, "TrapMemoryHandler: YALNIX_MAPERR\n");
+        KernelExit(-1, uctxt);
+    case YALNIX_ACCERR:
+        TracePrintf(0, "TrapMemoryHandler: YALNIX_ACCERR\n");
+         KernelExit(-1, uctxt);
+    default:
+        TracePrintf(0, "TrapMemoryHandler: Unknown Memory Error\n");
+         KernelExit(-1, uctxt);
+    }
     // make sure user context is valid
     
     // chcek if this is an implicit request
@@ -151,12 +177,8 @@ void TrapMemoryHandler(void *ctx) {
  */
 void TrapMathHandler(void *ctx) {
     UserContext *uctxt = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
-    // get current running process from running queue
-    // check that it's valid
-
-    // abort it
-    // get another ready process to run (or do we call some function to do this?)
+    TracePrintf(0,"TrapMathHandler: Illegal Math Operation\n");
+    KernelExit(0, uctxt);
 }
 
 /**
@@ -170,14 +192,24 @@ void TrapTTYReceiveHandler(void *ctx) {
     int tty_id = uctxt->code;
     char *ttyBuffer = ttyReadbuffers[tty_id];
     queue_t *ttyQueue = ttyReadQueues[tty_id];
+    TracePrintf(0, "TrapTTYReceiveHandler LOG: track %d\n", ttyReadTrackers[tty_id]);
 
     // clear stale bytes from the buffer
-    memset(ttyBuffer, 0, TERMINAL_MAX_LINE);
+    // memset(ttyBuffer, 0, TERMINAL_MAX_LINE);
+    char tempBuffer[TERMINAL_MAX_LINE];
 
     // use hardware function to read into the buffer
-    TtyReceive(tty_id, ttyBuffer, TERMINAL_MAX_LINE);
-
-    if (ttyQueue->size != 0) {
+    int bytes = TtyReceive(tty_id, tempBuffer, TERMINAL_MAX_LINE);
+    int to_copy;
+    if (TERMINAL_MAX_LINE - ttyReadTrackers[tty_id] < bytes) {
+        to_copy = TERMINAL_MAX_LINE - ttyReadTrackers[tty_id];
+    } else {
+        to_copy = bytes;
+    }
+    memcpy(ttyBuffer + ttyReadTrackers[tty_id], tempBuffer, to_copy);
+    ttyReadTrackers[tty_id] = ttyReadTrackers[tty_id] + to_copy;
+    TracePrintf(0, "TrapTTYReceiveHandler LOG: track %d\n", ttyReadTrackers[tty_id]);
+    if (ttyQueue->size > 0) {
         pcb_t *nextReader = queue_pop(ttyQueue);
         nextReader->blocked_code = NOT_BLOCKED;
         queue_add(ready_q, nextReader, nextReader->pid);

@@ -33,6 +33,7 @@ queue_t *ttyReadQueues[NUM_TERMINALS];
 queue_t *ttyWriteQueues[NUM_TERMINALS];
 char *ttyReadbuffers[NUM_TERMINALS];
 int ttyWriteTrackers[NUM_TERMINALS];
+int ttyReadTrackers[NUM_TERMINALS];
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -187,6 +188,7 @@ int SetUpGlobals() {
         ttyWriteQueues[i] = queue_init();
         ttyReadbuffers[i] = malloc(TERMINAL_MAX_LINE * sizeof(char));
         ttyWriteTrackers[i] = TERMINAL_OPEN;
+        ttyReadTrackers[i] = 0;
         memset(ttyReadbuffers[i], 0, TERMINAL_MAX_LINE);
     }
 
@@ -497,21 +499,13 @@ queue_t *CheckBlocked(pcb_t *pcb) {
             return ready_q;
         }
         break;
-    case BLOCKED_TTY_WRITE:
-        if (queue_peek(ttyWriteQueues[pcb->tty_terminal])->pid == pcb->pid) {
-            queue_pop(ttyWriteQueues[pcb->tty_terminal]);
-            pcb->blocked_code = NOT_BLOCKED;
-            pcb->tty_terminal = 0;
-            return ready_q;
-        }
-        break;
     case BLOCKED_TTY_TRANSMIT:
         if (ttyWriteTrackers[pcb->tty_terminal] == TERMINAL_OPEN) {
             pcb->blocked_code = NOT_BLOCKED;
             pcb->tty_terminal = 0;
             return ready_q;
         }
-        break;
+        return NULL;
     default:
         break;
     }

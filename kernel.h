@@ -153,6 +153,7 @@ extern queue_t *ttyReadQueues[NUM_TERMINALS];
 extern queue_t *ttyWriteQueues[NUM_TERMINALS];
 extern char *ttyReadbuffers[NUM_TERMINALS];
 extern int ttyWriteTrackers[NUM_TERMINALS];
+extern int ttyReadTrackers[NUM_TERMINALS];
 
 // tick interval of clock
 #define tick_interval DEFAULT_TICK_INTERVAL;

@@ -410,9 +410,6 @@ int KernelTtyRead(UserContext *uctxt, int tty_id, void *buf, int len) {
     } else if (len < 0) {
         // some error stuff
         return ERROR;
-    } else if (len > TERMINAL_MAX_LINE) {
-        // some error stuff
-        return ERROR;
     } else if (len == 0) return 0; // nothing to read
 
     // verify that there are no processes waiting to read from the terminal and there is input to read
@@ -421,10 +418,11 @@ int KernelTtyRead(UserContext *uctxt, int tty_id, void *buf, int len) {
         activePCB->tty_terminal = tty_id;
         SwapProcess(ttyQueue, uctxt);
     }
+    TracePrintf(0, "KernelTtyRead LOG: track %d\n", ttyReadTrackers[tty_id]);
 
     int bytes_num;
 
-    for(bytes_num = 0; bytes_num < TERMINAL_MAX_LINE; bytes_num++) {
+    for(bytes_num = 0; bytes_num < ttyReadTrackers[tty_id]; bytes_num++) {
         if(ttyBuffer[bytes_num] == '\n') {
             bytes_num++;
             break;
@@ -437,16 +435,18 @@ int KernelTtyRead(UserContext *uctxt, int tty_id, void *buf, int len) {
     memcpy(buf, ttyBuffer, bytes_num);
 
     // temporary buffer to use to move the bytes up
-    char tempBuffer[TERMINAL_MAX_LINE - bytes_num];
+    char tempBuffer[ttyReadTrackers[tty_id] - bytes_num];
 
     // save the remaining bytes in terminal buffer to a temporary buffer
-    memcpy(tempBuffer, &(ttyBuffer[bytes_num]), TERMINAL_MAX_LINE - bytes_num);
+    memcpy(tempBuffer, &(ttyBuffer[bytes_num]), ttyReadTrackers[tty_id] - bytes_num);
 
     // clear the tty buffer for the terminal
-    memset(ttyBuffer, 0, TERMINAL_MAX_LINE);
+    memset(ttyBuffer, 0, ttyReadTrackers[tty_id]);
 
     // move the save bytes bytes to the terminal buffer
-    memcpy(ttyBuffer, tempBuffer, TERMINAL_MAX_LINE - bytes_num);
+    memcpy(ttyBuffer, tempBuffer, ttyReadTrackers[tty_id] - bytes_num);
+    ttyReadTrackers[tty_id] = ttyReadTrackers[tty_id] - bytes_num;
+    TracePrintf(0, "KernelTtyRead LOG: track %d\n", ttyReadTrackers[tty_id]);
 
     // move next reader (if any) to the ready queue
     if (ttyQueue->size > 0 && ttyBuffer[0] != 0) {
@@ -478,21 +478,22 @@ int KernelTtyWrite(UserContext *uctxt, int tty_id, void *buf, int len) {
         return ERROR;
     } else if (len == 0) return 0; // nothing to write
 
+    queue_add(ttyQueue, activePCB, activePCB->pid);
+
     // verify that there are no processes waiting to write to the terminal and there is output to write
-    if (ttyQueue->size > 0) {
+    if (queue_peek(ttyQueue)->pid != activePCB->pid) {
         activePCB->blocked_code = BLOCKED_TTY_WRITE;
         activePCB->tty_terminal = tty_id;
-        queue_add(ttyQueue, activePCB, activePCB->pid);
-        SwapProcess(blocked_q, uctxt);
+        SwapProcess(NULL, uctxt);
     }
-
+    
     int bytes_left = len;
     int bytes_written = 0;
     while (bytes_left > 0) {
         while (ttyWriteTrackers[tty_id] == TERMINAL_CLOSED) {
             activePCB->blocked_code = BLOCKED_TTY_TRANSMIT;
             activePCB->tty_terminal = tty_id;
-            SwapProcess(blocked_q, uctxt);
+            SwapProcess(NULL, uctxt);
         }
         ttyWriteTrackers[tty_id] = TERMINAL_CLOSED;
         int to_write = bytes_left > TERMINAL_MAX_LINE ? TERMINAL_MAX_LINE : bytes_left;
@@ -501,6 +502,13 @@ int KernelTtyWrite(UserContext *uctxt, int tty_id, void *buf, int len) {
         TtyTransmit(tty_id, ttyBuffer, to_write);
         bytes_left -= to_write;
         bytes_written += to_write;
+    }
+
+    queue_pop(ttyQueue);
+    if (ttyQueue->size > 0) {
+        pcb_t *nextWriter = queue_peek(ttyQueue);
+        nextWriter->blocked_code = NOT_BLOCKED;
+        queue_add(ready_q, nextWriter, nextWriter->pid);
     }
 
     return bytes_written;
