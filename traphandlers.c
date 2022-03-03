@@ -121,9 +121,19 @@ void TrapClockHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapIllegalHandler(void *ctx) {
-    UserContext *uctxt = (UserContext *) ctx;
-    TracePrintf(0,"TrapIllegalHandler: Illegal Instruction\n");
-    KernelExit(0, uctxt);
+    TracePrintf(0, "Trap Illegal Handler Called.\n");
+    UserContext *user_context = (UserContext *) ctx;
+
+    if (activePCB == NULL) {
+        TracePrintf(0,"Error in Trap Illegal Handler, activePCB is null.\n");
+        return;
+    }
+
+    // set error code
+    activePCB->exit_code = ERROR;
+
+    // move process to defunct queue
+    SwapProcess(defunct_q, user_context);
 }
 
 /**
@@ -131,36 +141,58 @@ void TrapIllegalHandler(void *ctx) {
  * 
  * @param ctx user context from which the trap occured
  */
+/**
+ * @brief Handler in interrupt vector table for TRAP_MEMORY
+ * 
+ * @param ctx user context from which the trap occured
+ */
 void TrapMemoryHandler(void *ctx) {
-    UserContext *uctxt = (UserContext *) ctx;
-    int code = uctxt->code;
-    void *addr = uctxt->addr;
+    TracePrintf(0, "Trap Memory Hander Called.\n");
+    UserContext *user_context = (UserContext *) ctx;
 
-    if ( (int) addr > VMEM_1_LIMIT || (int) addr < VMEM_0_BASE) {
-        TracePrintf(0, "TrapMemoryHandler: Invalid Address\n");
-        KernelExit(-1, uctxt);
+    if (user_context == NULL) {
+        TracePrintf(0,"Error in Trap Memory Handler, user_context is null.\n");
+        return;
     }
 
-    switch (code) {
-    case YALNIX_MAPERR:
-        TracePrintf(0, "TrapMemoryHandler: YALNIX_MAPERR\n");
-        KernelExit(-1, uctxt);
-    case YALNIX_ACCERR:
-        TracePrintf(0, "TrapMemoryHandler: YALNIX_ACCERR\n");
-         KernelExit(-1, uctxt);
-    default:
-        TracePrintf(0, "TrapMemoryHandler: Unknown Memory Error\n");
-         KernelExit(-1, uctxt);
+    if (activePCB == NULL) {
+        TracePrintf(0,"Error in Trap Memory Handler, activePCB is null.\n");
+        return;
     }
-    // make sure user context is valid
-    
-    // chcek if this is an implicit request
-    // to enlarge memory on process's stack
-            // question: how to check if implicit req?
-    // if so: enlarge stack to cover the address in the addr
-    // field os UserContext, then return
 
-    // otherwise, same as TrapMathHandler
+    // get indexes for the user page base and stack index
+    int user_page_base = VMEM_1_BASE >> PAGESHIFT;
+    int stack_index = activePCB->user_stack_pt_index;
+
+    // get the page of the target address
+    int target = ( DOWN_TO_PAGE( (int)user_context->addr) >> PAGESHIFT ) - user_page_base;
+
+    TracePrintf(0, "Trap Memory user page base is %d, stack index is %d, address is %d, and target is %d\n", user_page_base, stack_index, (int) user_context->addr, target);
+
+    // Check to make sure the target address is not withing a valid frame (aka region1 heap or below)
+    if (activePCB->user_page_table[target].valid == VALID_FRAME || target < 0) {
+        TracePrintf(0, "Current process wishes to move stack to occupied frame. Aborting.");
+
+        activePCB->exit_code = ERROR;
+        SwapProcess(defunct_q, user_context);
+        return;
+    }
+
+    // from the target frame up to stack index, allocate frames for stack
+    for (int i = target; i < stack_index; i++) {
+        if (activePCB->user_page_table[i].valid == INVALID_FRAME) {
+            TracePrintf(0, "index -> %d\n", i);
+            int pfn = AllocatePFN();
+            if (pfn == ERROR) {
+                return;
+            }
+
+            // update page table entry for stack
+            activePCB->user_page_table[i].prot = NO_X_W_R;
+            activePCB->user_page_table[i].pfn = pfn;
+            activePCB->user_page_table[i].valid = VALID_FRAME;
+        }
+    }
 }
 
 /**
@@ -169,9 +201,20 @@ void TrapMemoryHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapMathHandler(void *ctx) {
-    UserContext *uctxt = (UserContext *) ctx;
-    TracePrintf(0,"TrapMathHandler: Illegal Math Operation\n");
-    KernelExit(0, uctxt);
+    TracePrintf(0, "Trap Math Handler Called.\n");
+    UserContext *user_context = (UserContext *) ctx;
+
+    // error check
+    if (activePCB == NULL) {
+        TracePrintf(0,"Error in Trap Math Handler, activePCB is null.\n");
+        return;
+    }
+
+    // give an error exit code
+    activePCB->exit_code = ERROR;
+
+    // move process to defunct queue
+    SwapProcess(defunct_q, user_context);
 }
 
 /**

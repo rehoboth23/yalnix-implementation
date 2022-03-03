@@ -66,3 +66,10 @@ The order the process's called `TtyRead` in is the same order the processes read
 - write "no" into terminal console
   - pid3 reads it, prints "no" in the terminal console, and then prints "PID 3"
 
+### Other Trap Handlers
+
+We test `TrapMemoryHandler` with the program `trap_mem.c`, which tries to touch a space within where the stack can grow, so it's a legal operation, and we enlarge the stack accordingly. Otherwise, we abort the process.
+
+
+
+We test `TrapMathHandlers` and in turn `TrapIllegalHandler` (because they do the same thing) with the program `trap_math.c`, which tries to divide by 0. What we observe in the TRACE file (saved in `test_traces/MATH_TRACE`) is that the process with pid 0 is aborted and does not pop up again. 
