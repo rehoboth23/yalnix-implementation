@@ -112,14 +112,7 @@ void TrapClockHandler(void *ctx) {
        pcb_t *pcb = queue_pop(blocked_q);
        if (pcb != NULL) queue_add(CheckBlocked(pcb), pcb, pcb->pid);
     }
-    for (int i = 0; i < 4; i++) {
-        queue_t *ttyQueue = ttyWriteQueues[i];
-        limit = ttyQueue->size;
-        if (ttyQueue->size > 0) {
-            pcb_t *pcb = queue_peek(ttyQueue);
-            queue_add(CheckBlocked(pcb), pcb, pcb->pid);
-        }
-    }
+   
 }
 
 /**
@@ -190,25 +183,34 @@ void TrapTTYReceiveHandler(void *ctx) {
     UserContext *uctxt = (UserContext *) ctx;
 
     int tty_id = uctxt->code;
+    // buffers to store for each terminal
     char *ttyBuffer = ttyReadbuffers[tty_id];
     queue_t *ttyQueue = ttyReadQueues[tty_id];
-    TracePrintf(0, "TrapTTYReceiveHandler LOG: track %d\n", ttyReadTrackers[tty_id]);
 
     // clear stale bytes from the buffer
     // memset(ttyBuffer, 0, TERMINAL_MAX_LINE);
     char tempBuffer[TERMINAL_MAX_LINE];
 
-    // use hardware function to read into the buffer
+    // use hardware function to read into a temporary buffer
     int bytes = TtyReceive(tty_id, tempBuffer, TERMINAL_MAX_LINE);
     int to_copy;
+
+    // if we have space in our buffer
     if (TERMINAL_MAX_LINE - ttyReadTrackers[tty_id] < bytes) {
+
+        // set bytes to copy to be the current space we have left
         to_copy = TERMINAL_MAX_LINE - ttyReadTrackers[tty_id];
     } else {
+        // write all that we can
         to_copy = bytes;
     }
+
     memcpy(ttyBuffer + ttyReadTrackers[tty_id], tempBuffer, to_copy);
+
+    // update readtrackers
     ttyReadTrackers[tty_id] = ttyReadTrackers[tty_id] + to_copy;
-    TracePrintf(0, "TrapTTYReceiveHandler LOG: track %d\n", ttyReadTrackers[tty_id]);
+
+    // if anyone else if waiting to read, wake them up
     if (ttyQueue->size > 0) {
         pcb_t *nextReader = queue_pop(ttyQueue);
         nextReader->blocked_code = NOT_BLOCKED;
@@ -222,9 +224,23 @@ void TrapTTYReceiveHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapTTYTransmitHandler(void *ctx) {
+
+
     UserContext *uctxt = (UserContext *) ctx;
     int tty_id = uctxt->code;
+
+    // mark the terminal as available
     ttyWriteTrackers[tty_id] = TERMINAL_OPEN;
+
+    // check the queue of processes waiting to write
+    queue_t *ttyQueue = ttyWriteQueues[tty_id];
+    pcb_t *pcb = queue_peek(ttyQueue);
+
+    // wake the first one up if it isn't the active process
+    // ( put it into ready queue )
+    if (ttyQueue->size > 0 && activePCB->pid != pcb->pid) {
+        queue_add(CheckBlocked(pcb), pcb, pcb->pid);
+    }
 }
 
 /**
