@@ -27,7 +27,7 @@ There are lots of ways for a process to get blocked, `Delay`, `Wait`, and now `T
 
 ### TtyReceive
 
-We have a global array, `ttyReadbuffers`, an array of buffers for each terminal. We also have global queues for each terminal `ttyReadQueues[]`. We keep track of the size of the buffers by using `ttyReadTrackers[]`, which store the size of the buffer assigned for that terminal.
+We have a global array, `ttyReadbuffers`, an array of buffers for each terminal. These buffers store up to `TERMINAL_MAX_LINE` bytes, if someone writes more than that to the same terminal, without any process calling `TtyRead`, we don't read anymore bytes. We also have global queues for each terminal `ttyReadQueues[]`. We keep track of the size of the buffers by using `ttyReadTrackers[]`, which store the size of the buffer assigned for that terminal.
 
 
 
