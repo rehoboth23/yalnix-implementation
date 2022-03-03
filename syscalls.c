@@ -20,22 +20,26 @@
  * @return int 
  */
 int KernelFork(UserContext *uctxt) {
+    // check for null user context
     if (uctxt == NULL) {
         TracePrintf(0,"ERROR: KernelFork got a null user context\n");
         return ERROR;
     }
 
+    // initialize child PCB
     pcb_t *childPCB = init_process(uctxt);
 
+    // error if init_process failed
     if (childPCB == NULL) {
         TracePrintf(0,"ERROR: child PCB in KernelFork is null.\n");
         return ERROR;
     }
 
-    pte_t *k_pt = ( pte_t *) ReadRegister(REG_PTBR0);  // current kernel stack should be regioin 0 stack
+    pte_t *k_pt = ( pte_t *) ReadRegister(REG_PTBR0);  // current kernel stack should be region 0 stack
     int kernel_stack_base = (int) KERNEL_STACK_BASE >> PAGESHIFT;
     int kernel_base = (int) VMEM_0_BASE >> PAGESHIFT;
 
+    // find an invalid frame to be reserved for kernel
     int reserved_kernel_index = -1;
     for (int index =kernel_stack_base ; index >= kernel_base; index--) {
         if (k_pt[index].valid == INVALID_FRAME) {
@@ -43,33 +47,42 @@ int KernelFork(UserContext *uctxt) {
             break;
         }
     }
+    // error if we can't find any
     if (reserved_kernel_index == -1) {
         return ERROR;
     }
 
+    // update that reserved frame
     k_pt[reserved_kernel_index].valid = VALID_FRAME;
     k_pt[reserved_kernel_index].prot = NO_X_W_R;
     WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
 
+    // copy user page table
     if (CopyUPT(activePCB->user_page_table, childPCB->user_page_table, k_pt, reserved_kernel_index) == ERROR) {
         TracePrintf(0,"ERROR: KernelFork, failed to CopyUPT\n");
         return ERROR;
-}
+    }
 
     // free kernel index when done (make invalid)
     k_pt[reserved_kernel_index].pfn = 0;
     k_pt[reserved_kernel_index].valid = INVALID_FRAME;
     k_pt[reserved_kernel_index].prot = NO_X_NO_W_NO_R;
 
+    // add the childPCB to the ready queue
     if (queue_add(ready_q, childPCB, childPCB->pid) == ERROR) {
         TracePrintf(0,"ERROR: KernelFork, failed add to queue.\n");
         return ERROR;
     }
 
+    // context switch to the child
     KernelContextSwitch(KCCopy, childPCB, NULL);
+    // once back from context switch
+
+    // return 0 if child
     if (activePCB->pid == childPCB->pid) return 0;
 
     TracePrintf(0, "Number of children -> %d\n", activePCB->num_children);
+    // return childpid if parent
     return childPCB->pid;
 }
 
@@ -108,6 +121,7 @@ int KernelExec(UserContext *uctxt, char *filename, char **argvec) {
  */
 int KernelExit(int exit_code, UserContext *uctxt) {
 
+    // error check
     if(uctxt == NULL) {
         TracePrintf(0,"ERROR: KernelExit received a NULL argument\n");
         return ERROR;
@@ -115,18 +129,28 @@ int KernelExit(int exit_code, UserContext *uctxt) {
 
 
     TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d\n", ready_q->size, blocked_q->size, defunct_q->size);
+    
+    // update exit_code in PCB
     activePCB->exit_code = exit_code;
     int limit;
-    queue_t *swap_q = NULL;
+    queue_t *swap_q = NULL; // queue to swap process with
     if (activePCB->ppid != 0 || activePCB->num_children > 0) {
 
-        // update parents && children in the ready queue
+    // update parents && children in the ready queue
         limit = ready_q->size;
+
+        // looping through ready queue
         for (int i = 0; i < limit; i++) {
             pcb_t *r_pcb = queue_pop(ready_q);
+
+            // if the pcb we popped is the child of our activePCB
             if (r_pcb->ppid == activePCB->pid) {
+                // create orphan :(
                 r_pcb->ppid = 0;
-            } else if (r_pcb->pid == activePCB->ppid) {
+            } 
+            // if the pcb we popped is the parent of our active pcb
+            else if (r_pcb->pid == activePCB->ppid) {
+                // update the popped pcb's number of children
                 TracePrintf(0, "~~~ Children left -> %d children\n", r_pcb->num_children);
                 swap_q = defunct_q;
             }
@@ -136,17 +160,22 @@ int KernelExit(int exit_code, UserContext *uctxt) {
             }
         }
 
-        // update parents && children in the blocked queue
+    // update parents && children in the blocked queue
+
         limit = blocked_q->size;
+        // loop through the blocked queue
         for (int i = 0; i < limit; i++) {
             pcb_t *b_pcb = queue_pop(blocked_q);
 
+            // error checking
             if (b_pcb == NULL) {
                 TracePrintf(0,"ERROR: KernelExit, b_pcb from queue is null.\n");
                 return ERROR;
             }
 
+            // if the pcb we popped is the parent of our active process and it's blocked
             if (b_pcb->pid == activePCB->ppid && b_pcb->blocked_code == BLOCKED_WAIT) {
+                // update exit code of active pcb
                 b_pcb->blocked_code = activePCB->exit_code;
                 b_pcb->num_children--;
                 TracePrintf(0, "~~~ Children left -> %d children\n", b_pcb->num_children);
@@ -155,11 +184,16 @@ int KernelExit(int exit_code, UserContext *uctxt) {
                     return ERROR;
                 }
                 continue;
-            } else if (b_pcb->pid == activePCB->ppid) {
+            } 
+            // if the pcb we popped is the parent and is not blocked
+            else if (b_pcb->pid == activePCB->ppid) {
                 TracePrintf(0, "~~~ Children left -> %d children\n", b_pcb->num_children);
                 swap_q = defunct_q;
-            } else if (b_pcb->ppid == activePCB->pid) {
-                 b_pcb->ppid = 0;
+            } 
+            // if the pcb we popped is the child of the active process
+            else if (b_pcb->ppid == activePCB->pid) {
+                // make it an orphan
+                b_pcb->ppid = 0;
             }
             if (queue_add(blocked_q, b_pcb, b_pcb->pid) == ERROR) {
                 TracePrintf(0,"ERROR: KernelExit, unable to add to queue in blocked q for loop\n");
@@ -187,18 +221,23 @@ int KernelExit(int exit_code, UserContext *uctxt) {
         }
     }
 
+    // if nothing to swap
     if (swap_q == NULL) {
         if (delete_process(activePCB) == ERROR) {
             TracePrintf(0,"ERROR: KernelExit, unable to delete process.\n");
             return ERROR;
         }
-    } else {
+    } 
+    
+    // otherwise
+    else {
          if (free_addr_space(activePCB->user_page_table, activePCB->kernel_stack_pt) == ERROR) {
             TracePrintf(0,"ERROR: KernelExit, unable to delete process.\n");
             return ERROR;
         }
     }
 
+    // then swap process
     if (SwapProcess(swap_q,uctxt) == ERROR) {
         TracePrintf(0, "ERROR: KernelExit, Unable to swap process.\n");
         return ERROR;
@@ -215,12 +254,16 @@ int KernelExit(int exit_code, UserContext *uctxt) {
  * @return int
  */
 int KernelWait(int *status_ptr, UserContext *uctxt) {
+    // check status_ptr and num of children, it shouldn't be null or 0
     if (status_ptr == NULL || activePCB->num_children == 0) {
         *status_ptr = ERROR;
-        return ERROR;
+        return ERROR;           // so calling wait with no children will just give ERROR
     }
+
+    // check defunct queue
     int limit = defunct_q->size;
     for(int i = 0; i < limit; i++) {
+        // pop a queue out of defunct_q
         pcb_t *d_pcb = queue_pop(defunct_q);
 
         if (d_pcb == NULL) {
@@ -228,24 +271,31 @@ int KernelWait(int *status_ptr, UserContext *uctxt) {
             return ERROR;
         }
 
+        // if dead pcb is the child of active pcb
         if (d_pcb->ppid == activePCB->pid) {
             activePCB->num_children--;
-            *status_ptr = d_pcb->exit_code;
+            *status_ptr = d_pcb->exit_code; // dead pcb still has exit code saved
             return 0;
         }
+
+        // add dead pcb back to defunct q
         if(queue_add(defunct_q, d_pcb, d_pcb->pid) == ERROR) {
             TracePrintf(0, "ERROR: KernelWait, unable to add to queue.\n");
             return ERROR;
         }
     }
-    
+    // mark active process as blocked
     activePCB->blocked_code = BLOCKED_WAIT;
+    //  save pid for when we come back
     int set_code_pid = activePCB->pid;
+
+    // swap process
     if (SwapProcess(blocked_q, uctxt) == ERROR) {
         TracePrintf(0, "ERROR: KernelWait, unable to swap process.\n");
         return ERROR;
     }
 
+    // unblock once we swap back
     if (activePCB->pid == set_code_pid) {
         *status_ptr = activePCB->blocked_code;
         activePCB->blocked_code = NOT_BLOCKED;
@@ -380,8 +430,11 @@ int KernelDelay(int clock_ticks, UserContext *uctxt) {
 
     // delay assumes that the idle process will never be blocked ensuring that we always have an available proccess
 
+    // some bookkeeping
     activePCB->clock_ticks = clock_ticks;
     activePCB->blocked_code = BLOCKED_DELAY;
+
+    // swap process
     if (SwapProcess(blocked_q,uctxt) == ERROR) {
         TracePrintf(0, "ERROR: KernelDelay, unable to swap processes.\n");
         return ERROR;
@@ -418,18 +471,22 @@ int KernelTtyRead(UserContext *uctxt, int tty_id, void *buf, int len) {
         activePCB->tty_terminal = tty_id;
         SwapProcess(ttyQueue, uctxt);
     }
-    TracePrintf(0, "KernelTtyRead LOG: track %d\n", ttyReadTrackers[tty_id]);
 
     int bytes_num;
 
+    // looping up until the first new line   
     for(bytes_num = 0; bytes_num < ttyReadTrackers[tty_id]; bytes_num++) {
+
+        // if we see a new line
         if(ttyBuffer[bytes_num] == '\n') {
             bytes_num++;
             break;
         }
     }
 
-    bytes_num = bytes_num > len ? len: bytes_num;
+    if (bytes_num > len) {
+        bytes_num = len;
+    }
 
     //copy the bytes  (as many as possible) into buf
     memcpy(buf, ttyBuffer, bytes_num);
@@ -468,8 +525,11 @@ int KernelTtyRead(UserContext *uctxt, int tty_id, void *buf, int len) {
  * @return int 
  */
 int KernelTtyWrite(UserContext *uctxt, int tty_id, void *buf, int len) {
+    
+    // have a queue for processes waiting to write
     queue_t *ttyQueue = ttyWriteQueues[tty_id];
-
+	
+	// error checking
     if (ttyQueue == NULL) {
         // some error stuff
         return ERROR;
@@ -477,33 +537,62 @@ int KernelTtyWrite(UserContext *uctxt, int tty_id, void *buf, int len) {
         // some error stuff
         return ERROR;
     } else if (len == 0) return 0; // nothing to write
-
+	
+	// add calling prrocess
     queue_add(ttyQueue, activePCB, activePCB->pid);
 
     // verify that there are no processes waiting to write to the terminal and there is output to write
     if (queue_peek(ttyQueue)->pid != activePCB->pid) {
         activePCB->blocked_code = BLOCKED_TTY_WRITE;
         activePCB->tty_terminal = tty_id;
+        
+        // swapping process while keeping the current process at the top of its queue, because it has more writing to do. This is to prevent another process from writing to the the same terminal before this process is done
         SwapProcess(NULL, uctxt);
     }
     
     int bytes_left = len;
     int bytes_written = 0;
+    
+    // while there's more to write
     while (bytes_left > 0) {
+    
+    	// while the terminal is taken
         while (ttyWriteTrackers[tty_id] == TERMINAL_CLOSED) {
+        
+        	// mark the current process as blocked
             activePCB->blocked_code = BLOCKED_TTY_TRANSMIT;
             activePCB->tty_terminal = tty_id;
+            
+            // swap process without putting anyone else in front, so we're still in front of the queue
             SwapProcess(NULL, uctxt);
         }
+        
+        // mark the terminal as taken
         ttyWriteTrackers[tty_id] = TERMINAL_CLOSED;
-        int to_write = bytes_left > TERMINAL_MAX_LINE ? TERMINAL_MAX_LINE : bytes_left;
+
+        int to_write;
+
+        if (bytes_left > TERMINAL_MAX_LINE) {
+            to_write = TERMINAL_MAX_LINE;
+        } else {
+            to_write = bytes_left;
+        }
+        
+        // buffer to write to
         char *ttyBuffer[to_write];
+        
+        // copy truncated info bytes to buffer
         memcpy(ttyBuffer, buf + bytes_written, to_write);
+        
+   		// ttytransmit
         TtyTransmit(tty_id, ttyBuffer, to_write);
+        
+        // update how much we've written and how much there is left to write
         bytes_left -= to_write;
         bytes_written += to_write;
     }
 
+	// wake up anyone waiting to write to the same terminal
     queue_pop(ttyQueue);
     if (ttyQueue->size > 0) {
         pcb_t *nextWriter = queue_peek(ttyQueue);

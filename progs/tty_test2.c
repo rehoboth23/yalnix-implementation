@@ -5,7 +5,6 @@
 
 int main(int argc, char const *argv[])
 {   
-    Delay(30);
     int rc = Fork();
     if (rc == 0) {
         char buf[50];
