@@ -99,6 +99,14 @@ int queue_find(queue_t *queue, int id);
 int queue_size(queue_t *queue);
 
 /**
+ * @brief function to peek at the head of a queue
+ * 
+ * @param queue the queue to peek into
+ * @return pcb_t* head of the queue
+ */
+pcb_t *queue_peek(queue_t *queue);
+
+/**
  * @brief delete a queue
  * 
  * @param queue queue to delete 

@@ -36,6 +36,7 @@ pcb_t *init_process(UserContext *uctxt) {
     process->clock_ticks = 0;
     process->blocked_code = NOT_BLOCKED;
     process->exit_code = 0;
+    process->tty_terminal = 0;
 
     // user context and kernel context
     memset(&(process->user_context), 0, sizeof(UserContext));

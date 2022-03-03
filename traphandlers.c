@@ -27,26 +27,26 @@ void (*InterruptVectorTable[TRAP_VECTOR_SIZE]) (void *ctx);
  * @param ctx user context from which the trap occured
  */
 void TrapKernelHandler(void *ctx) {
-    UserContext *user_context = (UserContext *) ctx;
-    u_long *regs = user_context->regs;
-    TracePrintf(0,"We got code: %x\n",user_context->code);
-    switch (user_context->code) {
+    UserContext *uctxt = (UserContext *) ctx;
+    u_long *regs = uctxt->regs;
+    TracePrintf(0,"We got code: %x\n",uctxt->code);
+    switch (uctxt->code) {
          case YALNIX_FORK: 
             TracePrintf(0, "kernel calling Fork()\n");
-            regs[0] = KernelFork(user_context);
+            regs[0] = KernelFork(uctxt);
             break;
         case YALNIX_EXEC:
             TracePrintf(0, "kernel calling Exec(%s, ...)\n", regs[0]);
-            regs[0] = KernelExec(user_context, (char *) regs[0], (char **) regs[1]);
+            regs[0] = KernelExec(uctxt, (char *) regs[0], (char **) regs[1]);
             
             // if kernel exec didn't fail
             if (regs[0] != ERROR) {
-                user_context->sp = activePCB->user_context.sp;
-                user_context->pc = activePCB->user_context.pc;
+                uctxt->sp = activePCB->user_context.sp;
+                uctxt->pc = activePCB->user_context.pc;
             }
             // otherwise exit the process with error code
             else {
-                KernelExit(ERROR,user_context);
+                KernelExit(ERROR,uctxt);
             }
             
             break;
@@ -75,16 +75,18 @@ void TrapKernelHandler(void *ctx) {
             regs[0] = KernelDelay(regs[0],ctx);
             break;
         case YALNIX_TTY_READ:
-            TracePrintf(0, "kernel calling TtyRead()\n");
+            TracePrintf(0, "kernel calling TtyRead(uctxt, %d, %p, %d)\n", (int) regs[0], (void *) regs[1], (int) regs[2]);
+            regs[0] = KernelTtyRead(ctx, (int) regs[0], (void *) regs[1], (int) regs[2]);
             break;
         case YALNIX_TTY_WRITE:
-            TracePrintf(0, "kernel calling TtyWrite()\n");
+            TracePrintf(0, "kernel calling TtyWrite(uctxt, %d, %p, %d)\n", (int) regs[0], (void *) regs[1], (int) regs[2]);
+            regs[0] = KernelTtyWrite(ctx, (int) regs[0], (void *) regs[1], (int) regs[2]);
             break;
         default:
             TracePrintf(0, "Unknown code\n");
             break;
     }
-    // check code of user_context
+    // check code of uctxt
 
     // depending on code, call the corresponding function below
 
@@ -100,7 +102,7 @@ void TrapKernelHandler(void *ctx) {
  */
 void TrapClockHandler(void *ctx) {
     TracePrintf(0, "Clock Tick -> %d\n", global_clock_ticks);
-    TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d\n", ready_q->size, blocked_q->size, defunct_q->size);
+    TracePrintf(0, "Ready -> %d ::: Blocked -> %d ::: Defunct -> %d ::: TtyRead %d ::: TtyWrite %d\n", ready_q->size, blocked_q->size, defunct_q->size, ttyReadQueues[0]->size, ttyWriteQueues[0]->size);
     global_clock_ticks++;
     // if (ready_q->size > 0) { 
     SwapProcess(ready_q,(UserContext *)ctx);
@@ -110,6 +112,7 @@ void TrapClockHandler(void *ctx) {
        pcb_t *pcb = queue_pop(blocked_q);
        if (pcb != NULL) queue_add(CheckBlocked(pcb), pcb, pcb->pid);
     }
+   
 }
 
 /**
@@ -118,9 +121,9 @@ void TrapClockHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapIllegalHandler(void *ctx) {
-    UserContext *user_context = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
-    // same as TrapMathHandler
+    UserContext *uctxt = (UserContext *) ctx;
+    TracePrintf(0,"TrapIllegalHandler: Illegal Instruction\n");
+    KernelExit(0, uctxt);
 }
 
 /**
@@ -129,8 +132,26 @@ void TrapIllegalHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapMemoryHandler(void *ctx) {
-    UserContext *user_context = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
+    UserContext *uctxt = (UserContext *) ctx;
+    int code = uctxt->code;
+    void *addr = uctxt->addr;
+
+    if ( (int) addr > VMEM_1_LIMIT || (int) addr < VMEM_0_BASE) {
+        TracePrintf(0, "TrapMemoryHandler: Invalid Address\n");
+        KernelExit(-1, uctxt);
+    }
+
+    switch (code) {
+    case YALNIX_MAPERR:
+        TracePrintf(0, "TrapMemoryHandler: YALNIX_MAPERR\n");
+        KernelExit(-1, uctxt);
+    case YALNIX_ACCERR:
+        TracePrintf(0, "TrapMemoryHandler: YALNIX_ACCERR\n");
+         KernelExit(-1, uctxt);
+    default:
+        TracePrintf(0, "TrapMemoryHandler: Unknown Memory Error\n");
+         KernelExit(-1, uctxt);
+    }
     // make sure user context is valid
     
     // chcek if this is an implicit request
@@ -148,13 +169,9 @@ void TrapMemoryHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapMathHandler(void *ctx) {
-    UserContext *user_context = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
-    // get current running process from running queue
-    // check that it's valid
-
-    // abort it
-    // get another ready process to run (or do we call some function to do this?)
+    UserContext *uctxt = (UserContext *) ctx;
+    TracePrintf(0,"TrapMathHandler: Illegal Math Operation\n");
+    KernelExit(0, uctxt);
 }
 
 /**
@@ -163,15 +180,42 @@ void TrapMathHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapTTYReceiveHandler(void *ctx) {
-    UserContext *user_context = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
-    // check that usercontext is valid
+    UserContext *uctxt = (UserContext *) ctx;
 
-    // code of usercontext is the terminal has a new line
-    // call TtyReceive from hardware.h to read input from terminal
-    
-    // buffer input line for more user TtyRead syscalls if necessary
-    
+    int tty_id = uctxt->code;
+    // buffers to store for each terminal
+    char *ttyBuffer = ttyReadbuffers[tty_id];
+    queue_t *ttyQueue = ttyReadQueues[tty_id];
+
+    // clear stale bytes from the buffer
+    // memset(ttyBuffer, 0, TERMINAL_MAX_LINE);
+    char tempBuffer[TERMINAL_MAX_LINE];
+
+    // use hardware function to read into a temporary buffer
+    int bytes = TtyReceive(tty_id, tempBuffer, TERMINAL_MAX_LINE);
+    int to_copy;
+
+    // if we have space in our buffer
+    if (TERMINAL_MAX_LINE - ttyReadTrackers[tty_id] < bytes) {
+
+        // set bytes to copy to be the current space we have left
+        to_copy = TERMINAL_MAX_LINE - ttyReadTrackers[tty_id];
+    } else {
+        // write all that we can
+        to_copy = bytes;
+    }
+
+    memcpy(ttyBuffer + ttyReadTrackers[tty_id], tempBuffer, to_copy);
+
+    // update readtrackers
+    ttyReadTrackers[tty_id] = ttyReadTrackers[tty_id] + to_copy;
+
+    // if anyone else if waiting to read, wake them up
+    if (ttyQueue->size > 0) {
+        pcb_t *nextReader = queue_pop(ttyQueue);
+        nextReader->blocked_code = NOT_BLOCKED;
+        queue_add(ready_q, nextReader, nextReader->pid);
+    }
 }
 
 /**
@@ -180,16 +224,23 @@ void TrapTTYReceiveHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapTTYTransmitHandler(void *ctx) {
-    UserContext *user_context = (UserContext *) ctx;
-    TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
-    // check that usercontext is valid
 
-    // code field of usercontext is the terminal that completed
-    //a TtyTransmit operation
 
-    // if process that started terminal output is blocked, finish it
-    // start the next terminal output on this terminal if there are any
+    UserContext *uctxt = (UserContext *) ctx;
+    int tty_id = uctxt->code;
 
+    // mark the terminal as available
+    ttyWriteTrackers[tty_id] = TERMINAL_OPEN;
+
+    // check the queue of processes waiting to write
+    queue_t *ttyQueue = ttyWriteQueues[tty_id];
+    pcb_t *pcb = queue_peek(ttyQueue);
+
+    // wake the first one up if it isn't the active process
+    // ( put it into ready queue )
+    if (ttyQueue->size > 0 && activePCB->pid != pcb->pid) {
+        queue_add(CheckBlocked(pcb), pcb, pcb->pid);
+    }
 }
 
 /**
@@ -198,7 +249,7 @@ void TrapTTYTransmitHandler(void *ctx) {
  * @param ctx user context from which the trap occured
  */
 void TrapDiskHandler(void *ctx) {
-    UserContext *user_context = (UserContext *) ctx;
+    UserContext *uctxt = (UserContext *) ctx;
     TracePrintf(0,"Sorry, this trap handler hasn't been implemented yet.\n");
     // no need to worry about, this is extra functionality
     // to do with disk
