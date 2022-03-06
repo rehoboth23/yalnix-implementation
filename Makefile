@@ -73,7 +73,7 @@ LINK_KERNEL = $(LINK.c)
 
 USER_LIBS = $(LIBDIR)/libuser.a
 ASFLAGS = -D__ASM__
-CPPFLAGS= -D_FILE_OFFSET_BITS=64 -m32 -fno-builtin -fno-stack-protector -I. -I$(INCDIR) -g -DLINUX
+CPPFLAGS= -D_FILE_OFFSET_BITS=64 -m32 -fno-builtin -I. -I$(INCDIR) -g -DLINUX
 
 ##########################
 #Targets for different makes
