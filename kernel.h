@@ -140,6 +140,9 @@ extern void *kernel_brk;
 #define h_tracing_level DEFAULT_TRACE_LEVEL;  // hardware tracing level
 #define u_tracing_level DEFAULT_TRACE_LEVEL;  // user tracing level
 
+#define MAX_LOCKS 100
+#define MAX_CVARS 5000
+
 // tracefile that traceprint writes to
 extern char* tracefile; //= TRACE;
 extern pcb_t *activePCB;
@@ -154,6 +157,12 @@ extern queue_t *ttyWriteQueues[NUM_TERMINALS];
 extern char *ttyReadbuffers[NUM_TERMINALS];
 extern int ttyWriteTrackers[NUM_TERMINALS];
 extern int ttyReadTrackers[NUM_TERMINALS];
+extern list_t *lock_list;
+extern int lock_status[MAX_LOCKS];
+extern list_t *cvar_list;
+extern int cvar_status[MAX_CVARS];
+extern queue_t *lockAquireQueues[MAX_LOCKS];
+extern queue_t *cvarWaitQueues[MAX_CVARS];
 
 // tick interval of clock
 #define tick_interval DEFAULT_TICK_INTERVAL;

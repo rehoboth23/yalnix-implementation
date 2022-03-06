@@ -38,10 +38,17 @@ enum {
     BLOCKED_TTY_READ      =    3,
     BLOCKED_TTY_WRITE     =    4,
     BLOCKED_TTY_TRANSMIT  =    5,
+    BLOCKED_LOCK_ACQUIRE  =    6,
 
     // TTY I/O 
     TERMINAL_OPEN         =    1,
     TERMINAL_CLOSED       =    0,
+
+    // LOCKS AND CVARS
+    UNUSED_LOCK           =    0, 
+    FREE_LOCK             =    0,  
+    UNUSED_CVAR           =    0, 
+    USED_CVAR             =    0, 
 };
 
 #endif

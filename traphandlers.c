@@ -152,11 +152,13 @@ void TrapMemoryHandler(void *ctx) {
 
     if (user_context == NULL) {
         TracePrintf(0,"Error in Trap Memory Handler, user_context is null.\n");
+        KernelExit(ERROR, user_context);
         return;
     }
 
     if (activePCB == NULL) {
         TracePrintf(0,"Error in Trap Memory Handler, activePCB is null.\n");
+        KernelExit(ERROR, user_context);
         return;
     }
 
@@ -172,9 +174,7 @@ void TrapMemoryHandler(void *ctx) {
     // Check to make sure the target address is not withing a valid frame (aka region1 heap or below)
     if (activePCB->user_page_table[target].valid == VALID_FRAME || target < 0) {
         TracePrintf(0, "Current process wishes to move stack to occupied frame. Aborting.");
-
-        activePCB->exit_code = ERROR;
-        SwapProcess(defunct_q, user_context);
+        KernelExit(ERROR, user_context);
         return;
     }
 
