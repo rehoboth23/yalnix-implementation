@@ -658,9 +658,11 @@ int KernelPipeRead(int pipe_id, void *buf, int len, UserContext *uctxt) {
         // error if anything invalid
     if (buf == NULL) {
         TracePrintf(0,"ERROR: KernelPipeRead received null buffer\n");
+        return ERROR;
     }
     if ((len < 0) || (len > PIPE_BUFFER_LEN)) {
         TracePrintf(0,"ERROR: invalid read length received: %d\n",len);
+        return ERROR;
     }
 
 
@@ -669,6 +671,7 @@ int KernelPipeRead(int pipe_id, void *buf, int len, UserContext *uctxt) {
     pipe_t* curr_pipe = get_pipe(head_pipe,pipe_id);
     if (curr_pipe == NULL) {
         TracePrintf(0,"ERROR: KernelPipeRead, get_pipe failed\n");
+        return ERROR;
     }
 
     // if current pipe is taken

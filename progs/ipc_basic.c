@@ -51,6 +51,5 @@ int main(int argc, char const *argv[]) {
         char* to_write = "test Test tEst teSt tesT\n";
         PipeWrite(*pipe1,to_write,strlen(to_write));        
 
-
     }
 }
