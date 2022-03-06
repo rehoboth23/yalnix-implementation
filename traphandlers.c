@@ -82,7 +82,6 @@ void TrapKernelHandler(void *ctx) {
             TracePrintf(0, "kernel calling TtyWrite(uctxt, %d, %p, %d)\n", (int) regs[0], (void *) regs[1], (int) regs[2]);
             regs[0] = KernelTtyWrite(ctx, (int) regs[0], (void *) regs[1], (int) regs[2]);
             break;
-<<<<<<< traphandlers.c
         case YALNIX_PIPE_INIT:
             TracePrintf(0, "kernel calling PipeInit(%p)\n",regs[0]);
             regs[0] = KernelPipeInit((int *)regs[0]);
