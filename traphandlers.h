@@ -201,9 +201,10 @@ int KernelLockInit(int *lock_idp);
  * @brief 
  * 
  * @param lock_id 
+ * @param uctxt 
  * @return int 
  */
-int KernelAcquire(int lock_id);
+int KernelAcquire(int lock_id, UserContext *uctxt);
 
 /**
  * @brief 
@@ -217,33 +218,29 @@ int KernelRelease(int lock_id);
  * @brief 
  * 
  * @param cvar_idp 
+ * @param uctxt 
  * @return int 
  */
-int KernelCvarInit(int *cvar_idp);
-/**
- * @brief 
- * 
- * @param cvar_idp 
- * @return int 
- */
-int KernelCvarSignal(int cvar_idp);
+int KernelCvarSignal(int cvar_idp, UserContext *uctxt);
 
 /**
  * @brief 
  * 
  * @param cvar_idp 
+ * @param uctxt 
  * @return int 
  */
-int KernelCvarBroadcast(int cvar_idp);
+int KernelCvarBroadcast(int cvar_idp, UserContext *uctxt);
 
 /**
  * @brief 
  * 
  * @param cvar_idp 
  * @param lock_id 
+ * @param uctxt 
  * @return int 
  */
-int KernelCvarWait(int cvar_idp, int lock_id);
+int KernelCvarWait(int cvar_idp, int lock_id, UserContext *uctxt);
 
 /**
  * @brief 

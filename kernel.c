@@ -34,6 +34,12 @@ queue_t *ttyWriteQueues[NUM_TERMINALS];
 char *ttyReadbuffers[NUM_TERMINALS];
 int ttyWriteTrackers[NUM_TERMINALS];
 int ttyReadTrackers[NUM_TERMINALS];
+list_t *lock_list;
+list_t *cvar_list;
+int lock_status[MAX_LOCKS];
+int cvar_status[MAX_CVARS];
+queue_t *lockAquireQueues[MAX_LOCKS];
+queue_t *cvarWaitQueues[MAX_CVARS];
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -183,6 +189,8 @@ int SetUpGlobals() {
     blocked_q = queue_init();
     defunct_q = queue_init();
     pfn_list = list_init();
+    lock_list = list_init();
+    cvar_list = list_init();
     for (int i = 0; i < NUM_TERMINALS; i++) {
         ttyReadQueues[i] = queue_init();
         ttyWriteQueues[i] = queue_init();
@@ -190,6 +198,21 @@ int SetUpGlobals() {
         ttyWriteTrackers[i] = TERMINAL_OPEN;
         ttyReadTrackers[i] = 0;
         memset(ttyReadbuffers[i], 0, TERMINAL_MAX_LINE);
+    }
+
+    for (int i = 0; i < MAX_LOCKS; i++) {
+        lockAquireQueues[i] = queue_init();
+        lock_status[i] = UNUSED_LOCK;
+        if (list_add(lock_list, (void *) i) == ERROR) {
+            TracePrintf(0, "ERROR: SetUpGlobals, adding to list failed");
+            return ERROR;
+        }
+    }
+
+    for (int i = 0; i < MAX_CVARS; i++) {
+        cvarWaitQueues[i] = queue_init();
+        cvar_status[i] = UNUSED_CVAR;
+        list_add(cvar_list, (void *) i);
     }
 
 

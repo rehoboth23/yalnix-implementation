@@ -17,7 +17,7 @@ K_INCS = kernel.h traphandlers.h process.h queue.h list.h include.h
 U_SRC_DIR = ./progs
 
 # What are the user c and include files?
-U_SRCS = init.c idle.c brk.c fork.c to_exec.c exec1.c exec2.c wait_exit.c pid_test.c ttyread_test.c simul_ttywrite.c spam_ttywrite.c ttywrite.c trap_mem.c trap_math.c
+U_SRCS = init.c idle.c brk.c fork.c to_exec.c exec1.c exec2.c wait_exit.c pid_test.c ttyread_test.c simul_ttywrite.c spam_ttywrite.c ttywrite.c trap_mem.c trap_math.c torture.c
 U_INCS =
 
 
