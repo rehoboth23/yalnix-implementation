@@ -163,7 +163,6 @@ extern queue_t *ttyWriteQueues[NUM_TERMINALS];
 extern char *ttyReadbuffers[NUM_TERMINALS];
 extern int ttyWriteTrackers[NUM_TERMINALS];
 extern int ttyReadTrackers[NUM_TERMINALS];
-<<<<<<< kernel.h
 // parent pipe, the pipe with id 0
 extern pipe_t *head_pipe;
 // locks and cvars
