@@ -939,34 +939,39 @@ int KernelPipeWrite(int pipe_id, void *buf, int len, UserContext *uctxt) {
  * @return int 
  */
 int KernelLockInit(int *lock_idp) {
-    // check for a valid argument
-
-    /* This was at page 49 of textbook, not sure if this is right for yalnix?? */
-    // allocate and initialize per-thread data structures? In this simple yalnix context will that just be allocing new processes?
-    // put the thread (process?) in the ready state by adding it to a ready list/ queue. Use queue adding function
-    /*********/
-
-    // creates a lock handle lock_idp
-
-    // save identifier at *lock_idp
-
-    // Return error if any
+    if (lock_list->size == 0) {
+        *lock_idp = -1;
+        return ERROR;
+    }
+    if (lock_idp == NULL) return ERROR;
+    *lock_idp = (int) list_pop(lock_list);
+    lock_status[*lock_idp] = FREE_LOCK;
+    return SUCCESS;
 }
 
 /**
  * @brief 
  * 
  * @param lock_id 
+ * @param uctxt 
  * @return int 
  */
-int KernelAcquire(int lock_id) {
-
-    // block caller by adding it to blocked processes queue.
-
-
-    //continue once this process is out of blocked processes queue and in running queue.
-
-    // return if failure. 
+int KernelAcquire(int lock_id, UserContext *uctxt) {
+    if (lock_id < 0 || lock_id > MAX_LOCKS || uctxt == NULL) {
+        return ERROR;
+    }
+    if (lock_status[lock_id] == UNUSED_LOCK) {
+        return ERROR;
+    }
+    if (lock_status[lock_id] == activePCB->pid) {
+        return ERROR;
+    } else if (lock_status[lock_id] != FREE_LOCK) {
+        activePCB->blocked_code = BLOCKED_LOCK_ACQUIRE;
+        SwapProcess(lockAquireQueues[lock_id], uctxt);
+        activePCB->blocked_code = NOT_BLOCKED;
+    }
+    lock_status[lock_id] = activePCB->pid;
+    return SUCCESS;
 }
 
 /**
@@ -976,12 +981,16 @@ int KernelAcquire(int lock_id) {
  * @return int 
  */
 int KernelRelease(int lock_id) {
-    // check if caller has lock
-	// return error if they doesn't
-    
-    // Release lock that was being waited upon by processes in blocked queue.
-	
-    // return error or not. 
+    if (lock_id < 0 || lock_id > MAX_LOCKS) return ERROR;
+    if (lock_status[lock_id] != activePCB->pid || lock_status[lock_id] == UNUSED_LOCK) {
+        return ERROR;
+    }
+    lock_status[lock_id] = FREE_LOCK;
+    if (lockAquireQueues[lock_id]->size > 0) {
+        pcb_t *next = queue_pop(lockAquireQueues[lock_id]);
+        queue_add(ready_q, next, next->pid);
+    }
+    return SUCCESS;
 }
 
 /**
@@ -991,35 +1000,46 @@ int KernelRelease(int lock_id) {
  * @return int 
  */
 int KernelCvarInit(int *cvar_idp) {
-    // init a cvar and assign to cvar_idp.
-    // return error or not
+    if (cvar_idp == NULL) return ERROR;
+    if (cvar_list->size == 0) {
+        *cvar_idp = ERROR;
+        return ERROR;
+    }
+    *cvar_idp = (int) list_pop(cvar_list);
+    cvar_status[*cvar_idp] = USED_CVAR;
+    return SUCCESS;
 }
 
 /**
  * @brief 
  * 
  * @param cvar_idp 
+ * @param uctxt 
  * @return int 
  */
-int KernelCvarSignal(int cvar_idp) {
-    // while (1)
-	// let waiter run by adding process to blocked processes queue
-
-	
-    // return error or not
+int KernelCvarSignal(int cvar_idp, UserContext *uctxt) {
+    if (cvar_idp < 0 || uctxt == NULL || cvar_status[cvar_idp] == UNUSED_CVAR) return ERROR;
+    if (cvarWaitQueues[cvar_idp]->size > 0) {
+        pcb_t *receiver = queue_pop(cvarWaitQueues[cvar_idp]);
+        queue_add(ready_q, receiver, receiver->pid);
+    }
+    return SUCCESS;
 }
 
 /**
  * @brief 
  * 
  * @param cvar_idp 
+ * @param uctxt 
  * @return int 
  */
-int KernelCvarBroadcast(int cvar_idp) {
-    // while (1)
-	// release all processes in blocked processes queue. 
-
-    // return error or not
+int KernelCvarBroadcast(int cvar_idp, UserContext *uctxt) {
+    if (cvar_idp < 0 || uctxt == NULL || cvar_status[cvar_idp] == UNUSED_CVAR) return ERROR;
+    pcb_t *receiver;
+    while ( (receiver = queue_pop(cvarWaitQueues[cvar_idp])) != NULL ) {
+        queue_add(ready_q, receiver, receiver->pid);
+    }
+    return SUCCESS;
 }
 
 /**
@@ -1027,18 +1047,21 @@ int KernelCvarBroadcast(int cvar_idp) {
  * 
  * @param cvar_idp 
  * @param lock_id 
+ * @param uctxt 
  * @return int 
  */
-int KernelCvarWait(int cvar_idp, int lock_id) {
-    // block the current process by adding it to the blocked queue. 
-    // release the the mutex lock signaled by lock_idp
-    
-    // while (1)
-	// wait for signal identified by cvar_id 
-	// reaqure lock
-    // once the lock is aquired then continue. DO NOT RETURN UNTIL LOCK IS REAQUIRED
-
-    // return error code or no error
+int KernelCvarWait(int cvar_idp, int lock_id, UserContext *uctxt) {
+    if (cvar_idp < 0 || 
+        cvar_status[cvar_idp] == UNUSED_CVAR ||
+        lock_id < 0 ||
+        lock_status[lock_id] == UNUSED_LOCK ||
+        uctxt == NULL
+   ) {
+       return ERROR;
+   }
+   if (KernelRelease(lock_id) == ERROR) return ERROR;
+   SwapProcess(cvarWaitQueues[cvar_idp], uctxt);
+   return KernelAcquire(lock_id, uctxt);
 }
 
 /**

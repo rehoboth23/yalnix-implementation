@@ -82,6 +82,7 @@ void TrapKernelHandler(void *ctx) {
             TracePrintf(0, "kernel calling TtyWrite(uctxt, %d, %p, %d)\n", (int) regs[0], (void *) regs[1], (int) regs[2]);
             regs[0] = KernelTtyWrite(ctx, (int) regs[0], (void *) regs[1], (int) regs[2]);
             break;
+<<<<<<< traphandlers.c
         case YALNIX_PIPE_INIT:
             TracePrintf(0, "kernel calling PipeInit(%p)\n",regs[0]);
             regs[0] = KernelPipeInit((int *)regs[0]);
@@ -94,8 +95,34 @@ void TrapKernelHandler(void *ctx) {
             TracePrintf(0, "kernel calling PipeWrite(%d,%p,%d)\n",regs[0],regs[1],regs[2]);
             regs[0] = KernelPipeWrite((int) regs[0], (void *)regs[1],(int) regs[2],ctx);
             break;
-
-
+        case YALNIX_CVAR_INIT:
+            TracePrintf(0, "kernel calling yalnix cvar init\n");
+            regs[0] = KernelCvarInit(regs[0]);
+            break;
+        case YALNIX_CVAR_SIGNAL:
+            TracePrintf(0, "kernel yalnix cvar signal\n");
+            regs[0] = KernelCvarSignal(regs[0], ctx);
+            break;
+        case YALNIX_CVAR_BROADCAST:
+            TracePrintf(0, "kernel calling yalnix cvar broadcast\n");
+            regs[0] = KernelCvarBroadcast(regs[0], ctx);
+            break;
+        case YALNIX_CVAR_WAIT:
+            TracePrintf(0, "kernel calling yalnix cvar wait\n");
+            regs[0] = KernelCvarWait(regs[0], regs[1], ctx);
+            break;
+        case YALNIX_LOCK_INIT:
+            TracePrintf(0, "kernel calling yalnix lock init\n");
+            regs[0] = KernelLockInit(regs[0]);
+            break;
+        case YALNIX_LOCK_ACQUIRE:
+            TracePrintf(0, "kernel calling yalnix lock acquire\n");
+            regs[0] = KernelAcquire(regs[0], ctx);
+            break;
+        case YALNIX_LOCK_RELEASE:
+            TracePrintf(0, "kernel calling yalnix lock release\n");
+            regs[0] = KernelRelease(regs[0]);
+            break;
 
         default:
             TracePrintf(0, "Unknown code\n");
@@ -167,11 +194,13 @@ void TrapMemoryHandler(void *ctx) {
 
     if (user_context == NULL) {
         TracePrintf(0,"Error in Trap Memory Handler, user_context is null.\n");
+        KernelExit(ERROR, user_context);
         return;
     }
 
     if (activePCB == NULL) {
         TracePrintf(0,"Error in Trap Memory Handler, activePCB is null.\n");
+        KernelExit(ERROR, user_context);
         return;
     }
 
@@ -187,9 +216,7 @@ void TrapMemoryHandler(void *ctx) {
     // Check to make sure the target address is not withing a valid frame (aka region1 heap or below)
     if (activePCB->user_page_table[target].valid == VALID_FRAME || target < 0) {
         TracePrintf(0, "Current process wishes to move stack to occupied frame. Aborting.");
-
-        activePCB->exit_code = ERROR;
-        SwapProcess(defunct_q, user_context);
+        KernelExit(ERROR, user_context);
         return;
     }
 

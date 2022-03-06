@@ -4,5 +4,8 @@
 #include "yuser.h"
 
 int main(int argc, char const *argv[]) {
-    int crash = 5 / 0;
+    int a = 5;
+    int b = 0;
+    int crash = a / b;
+    return 0;
 }

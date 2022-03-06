@@ -37,7 +37,15 @@ queue_t *ttyWriteQueues[NUM_TERMINALS];
 char *ttyReadbuffers[NUM_TERMINALS];
 int ttyWriteTrackers[NUM_TERMINALS];
 int ttyReadTrackers[NUM_TERMINALS];
+<<<<<<< kernel.c
 pipe_t *head_pipe;
+list_t *lock_list;
+list_t *cvar_list;
+int lock_status[MAX_LOCKS];
+int cvar_status[MAX_CVARS];
+queue_t *lockAquireQueues[MAX_LOCKS];
+queue_t *cvarWaitQueues[MAX_CVARS];
+
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -195,8 +203,13 @@ int SetUpGlobals() {
 
     // linked list of free page frames
     pfn_list = list_init();
+<<<<<<< kernel.c
 
     // global queues for processes reading/writing to terminal
+=======
+    lock_list = list_init();
+    cvar_list = list_init();
+>>>>>>> kernel.c
     for (int i = 0; i < NUM_TERMINALS; i++) {
         ttyReadQueues[i] = queue_init();
         ttyWriteQueues[i] = queue_init();
@@ -206,7 +219,26 @@ int SetUpGlobals() {
         memset(ttyReadbuffers[i], 0, TERMINAL_MAX_LINE);
     }
 
+<<<<<<< kernel.c
     // error checking global queues
+=======
+    for (int i = 0; i < MAX_LOCKS; i++) {
+        lockAquireQueues[i] = queue_init();
+        lock_status[i] = UNUSED_LOCK;
+        if (list_add(lock_list, (void *) i) == ERROR) {
+            TracePrintf(0, "ERROR: SetUpGlobals, adding to list failed");
+            return ERROR;
+        }
+    }
+
+    for (int i = 0; i < MAX_CVARS; i++) {
+        cvarWaitQueues[i] = queue_init();
+        cvar_status[i] = UNUSED_CVAR;
+        list_add(cvar_list, (void *) i);
+    }
+
+
+>>>>>>> kernel.c
     if (ready_q == NULL || blocked_q == NULL || defunct_q == NULL || pfn_list == NULL) {
         TracePrintf(0, "ERROR: SetUpGlobals, initalization of queues failed\n");
         return ERROR;
