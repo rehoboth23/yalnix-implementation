@@ -177,7 +177,7 @@ int KernelPipeInit(int *pipe_idp);
  * @param len 
  * @return int 
  */
-int KernelPipeRead(int pipe_id, void *buf, int len);
+int KernelPipeRead(int pipe_id, void *buf, int len,UserContext *uctxt);
 
 /**
  * @brief 
@@ -187,7 +187,7 @@ int KernelPipeRead(int pipe_id, void *buf, int len);
  * @param len 
  * @return int 
  */
-int KernelPipeWrite(int pipe_id, void *buf, int len);
+int KernelPipeWrite(int pipe_id, void *buf, int len, UserContext *uctxt);
 
 /**
  * @brief 

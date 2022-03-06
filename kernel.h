@@ -10,6 +10,7 @@
 #define __KERNEL_H_
 
 #include <hardware.h>
+#include "pipe.h"
 #include "queue.h"
 #include "process.h"
 #include "include.h"
@@ -142,18 +143,26 @@ extern void *kernel_brk;
 
 // tracefile that traceprint writes to
 extern char* tracefile; //= TRACE;
+// process that's currently active
 extern pcb_t *activePCB;
+// global queues
 extern queue_t *ready_q;
 extern queue_t *blocked_q;
 extern queue_t *defunct_q;
+// keeping track of free page frame numbers
 extern list_t *pfn_list;
+// clock ticks
 extern int global_clock_ticks;
 extern pcb_t *idlePCB;
+// terminal helpers
 extern queue_t *ttyReadQueues[NUM_TERMINALS];
 extern queue_t *ttyWriteQueues[NUM_TERMINALS];
 extern char *ttyReadbuffers[NUM_TERMINALS];
 extern int ttyWriteTrackers[NUM_TERMINALS];
 extern int ttyReadTrackers[NUM_TERMINALS];
+// parent pipe, the pipe with id 0
+extern pipe_t *head_pipe;
+
 
 // tick interval of clock
 #define tick_interval DEFAULT_TICK_INTERVAL;

@@ -38,10 +38,15 @@ enum {
     BLOCKED_TTY_READ      =    3,
     BLOCKED_TTY_WRITE     =    4,
     BLOCKED_TTY_TRANSMIT  =    5,
+    BLOCKED_PIPE_READ     =    6,
+    BLOCKED_PIPE_WRITE    =    7,
 
     // TTY I/O 
     TERMINAL_OPEN         =    1,
     TERMINAL_CLOSED       =    0,
+
+    PIPE_FREE             =    0,
+    PIPE_NOT_FREE         =    1
 };
 
 #endif

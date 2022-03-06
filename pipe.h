@@ -1,13 +1,29 @@
 #ifndef __PIPE_H_
-#define ___PIPE_H_
+#define __PIPE_H_
+
+#include "yalnix.h"
+#include "queue.h"
+
+typedef struct pipe {
+
+    char buf[PIPE_BUFFER_LEN];
+    int plen;
+    int id;
+    struct pipe *next;
+    int being_used;     // flag variable, whether or not the pipe is being used
+    queue_t *queue;     // queue of processes waiting to read or write
+
+} pipe_t;
+
+
 
 /* function to initialize pipe */
-int nala_pipe(const int __desc[2]);
+pipe_t* init_head_pipe();
 
-/* function to read bytes from a pipe into a memory location*/
-int nala_read(const int __fd, const void *__dest, const size_t __bytes_to_read);
+int add_pipe(pipe_t *head_pipe);
 
-/* function to write bytes from a source into a pipe */
-int nala_write(const int __fd, const void *__src, const size_t __bytes_to_read);
+int remove_pipe(pipe_t *head_pipe, int id);
+
+pipe_t* get_pipe(pipe_t* head_pipe, int id);
 
 #endif

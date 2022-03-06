@@ -10,14 +10,14 @@
 K_SRC_DIR = .
 
 # What are the kernel c and include files?
-K_SRCS = kernel.c traphandlers.c process.c queue.c list.c load_program.c contextswitch.c syscalls.c
-K_INCS = kernel.h traphandlers.h process.h queue.h list.h include.h
+K_SRCS = kernel.c traphandlers.c process.c queue.c list.c load_program.c contextswitch.c syscalls.c pipe.c
+K_INCS = kernel.h traphandlers.h process.h queue.h list.h include.h pipe.h
 
 # Where's your user source?
 U_SRC_DIR = ./progs
 
 # What are the user c and include files?
-U_SRCS = init.c idle.c brk.c fork.c to_exec.c exec1.c exec2.c wait_exit.c pid_test.c ttyread_test.c simul_ttywrite.c spam_ttywrite.c ttywrite.c trap_mem.c trap_math.c
+U_SRCS = init.c idle.c brk.c fork.c to_exec.c exec1.c exec2.c wait_exit.c pid_test.c ttyread_test.c simul_ttywrite.c spam_ttywrite.c ttywrite.c trap_mem.c trap_math.c pipe_basic.c
 U_INCS =
 
 
