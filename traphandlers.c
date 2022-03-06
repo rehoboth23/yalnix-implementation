@@ -82,6 +82,34 @@ void TrapKernelHandler(void *ctx) {
             TracePrintf(0, "kernel calling TtyWrite(uctxt, %d, %p, %d)\n", (int) regs[0], (void *) regs[1], (int) regs[2]);
             regs[0] = KernelTtyWrite(ctx, (int) regs[0], (void *) regs[1], (int) regs[2]);
             break;
+        case YALNIX_CVAR_INIT:
+            TracePrintf(0, "kernel calling yalnix cvar init\n");
+            regs[0] = KernelCvarInit(regs[0]);
+            break;
+        case YALNIX_CVAR_SIGNAL:
+            TracePrintf(0, "kernel yalnix cvar signal\n");
+            regs[0] = KernelCvarSignal(regs[0], ctx);
+            break;
+        case YALNIX_CVAR_BROADCAST:
+            TracePrintf(0, "kernel calling yalnix cvar broadcast\n");
+            regs[0] = KernelCvarBroadcast(regs[0], ctx);
+            break;
+        case YALNIX_CVAR_WAIT:
+            TracePrintf(0, "kernel calling yalnix cvar wait\n");
+            regs[0] = KernelCvarWait(regs[0], regs[1], ctx);
+            break;
+        case YALNIX_LOCK_INIT:
+            TracePrintf(0, "kernel calling yalnix lock init\n");
+            regs[0] = KernelLockInit(regs[0]);
+            break;
+        case YALNIX_LOCK_ACQUIRE:
+            TracePrintf(0, "kernel calling yalnix lock acquire\n");
+            regs[0] = KernelAcquire(regs[0], ctx);
+            break;
+        case YALNIX_LOCK_RELEASE:
+            TracePrintf(0, "kernel calling yalnix lock release\n");
+            regs[0] = KernelRelease(regs[0]);
+            break;
         default:
             TracePrintf(0, "Unknown code\n");
             break;
