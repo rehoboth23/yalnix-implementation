@@ -89,6 +89,7 @@ pcb_t *init_process(UserContext *uctxt) {
     process->user_heap_pt_index = 0;
     process->user_text_pt_index = 0;
     process->user_data_pt_index = 0;
+    
 
     return process;
 }

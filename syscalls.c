@@ -28,6 +28,10 @@ int KernelFork(UserContext *uctxt) {
 
     // initialize child PCB
     pcb_t *childPCB = init_process(uctxt);
+    childPCB->user_heap_pt_index = activePCB->user_heap_pt_index;
+    childPCB->user_stack_pt_index = activePCB->user_stack_pt_index;
+    childPCB->user_data_pt_index = activePCB->user_data_pt_index;
+    childPCB->user_text_pt_index = activePCB->user_text_pt_index;
 
     // error if init_process failed
     if (childPCB == NULL) {
@@ -621,6 +625,10 @@ int KernelPipeInit(int *pipe_idp) {
     // generate pipe id by looking at other existing pipes
     // initialize pipe with its assigned id
 
+    if (pipe_idp == NULL) {
+        TracePrintf(0,"ERROR: KernelPipeInit received NULL pipe_idp\n");
+        return ERROR;
+    }
 
     int id = add_pipe(head_pipe);
     if (id == ERROR) {
@@ -691,7 +699,10 @@ int KernelPipeRead(int pipe_id, void *buf, int len, UserContext *uctxt) {
     }
 
     // mark pipe as taken
+    TracePrintf(0,"KernelPipeRead: marking pipe as taken...\n");
     curr_pipe->being_used = PIPE_NOT_FREE;
+
+    int amount_read;
         
     // if len < plen, we give only len data
     if (curr_pipe->plen > len) {
@@ -707,8 +718,8 @@ int KernelPipeRead(int pipe_id, void *buf, int len, UserContext *uctxt) {
         // update length of pipe
         curr_pipe->plen = curr_pipe->plen - len;
 
-        // return len
-        return len;
+        // so we read len bytes
+        amount_read = len;
     }
     // if len >= plen, we give everything in the pipe
     else { 
@@ -721,7 +732,8 @@ int KernelPipeRead(int pipe_id, void *buf, int len, UserContext *uctxt) {
         int tmp = curr_pipe->plen;
         curr_pipe->plen = 0;
 
-        return tmp;
+        // so we read tmp amount of data
+        amount_read = tmp;
     }
         
     
@@ -790,8 +802,9 @@ int KernelPipeRead(int pipe_id, void *buf, int len, UserContext *uctxt) {
     }
 
     // pipe no longer taken
+    TracePrintf(0,"KernelPipeRead: Freeing pipe...\n");
     curr_pipe->being_used = PIPE_FREE;
-    return 0;
+    return amount_read;
 }
 
 /**
@@ -841,6 +854,7 @@ int KernelPipeWrite(int pipe_id, void *buf, int len, UserContext *uctxt) {
 
     // mark pipe is being used
     curr_pipe->being_used = PIPE_NOT_FREE;
+    TracePrintf(0,"KernelPipeWrite: marking pipe as taken...\n");
 
 
     // int available space = max pipe length - plen
@@ -852,13 +866,6 @@ int KernelPipeWrite(int pipe_id, void *buf, int len, UserContext *uctxt) {
         // put len data from buf into pipe
         memcpy(curr_pipe->buf + curr_pipe->plen,buf,len);
         TracePrintf(0,"Wrote %d many bytes of \"%s\"\n",len,buf);
-        // for (int i = 0; i < len; i++) {
-            
-        //     curr_pipe->buf[curr_pipe->plen + i] = *((char*)buf + i);    // return error if we get here
-
-        //     TracePrintf(0,"Writing %c to pipe %d\n",buf+i,pipe_id);
-        // }
-
         // update length of pipe
         curr_pipe->plen = curr_pipe->plen + len;
 
@@ -907,7 +914,7 @@ int KernelPipeWrite(int pipe_id, void *buf, int len, UserContext *uctxt) {
     }
 
     // mark pipe as free
-    TracePrintf(0,"PipeRead done, marking pipe as free...\n");
+    TracePrintf(0,"KernelPipeWrite done, marking pipe as free...\n");
     curr_pipe->being_used = PIPE_FREE;
 
     // return number of bytes written

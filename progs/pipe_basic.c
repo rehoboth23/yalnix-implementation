@@ -11,23 +11,22 @@ int main(int argc, char const *argv[]) {
 
     char* hello = "Hello World!\n";
 
-    TracePrintf(0,"Initializing pipe...\n");
+    TracePrintf(1,"Initializing pipe...\n");
 
     int *pipe = malloc(sizeof(int*));
 
     PipeInit(pipe);
     
-    TracePrintf(0,"Writing \"Hello World!\" to pipe...\n");
+    TracePrintf(1,"pipe_basic.c: Writing \"Hello World!\" to pipe...\n");
 
     PipeWrite(*pipe,hello,strlen(hello));
 
     char* read_result = malloc(32);
 
-    TracePrintf(0,"Reading 10 from pipe into a buffer...\n");
+    TracePrintf(1,"pipe_basic.c:Reading 10 from pipe into a buffer...\n");
 
     PipeRead(*pipe,read_result,5);
 
-    TracePrintf(0,"Printing read_result: %s\n",read_result);
-
+    TracePrintf(1,"pipe_basic.c:Printing read_result: %s\n",read_result);
     
 }
