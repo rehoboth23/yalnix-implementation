@@ -96,7 +96,7 @@ void TrapKernelHandler(void *ctx) {
             break;
         case YALNIX_CVAR_INIT:
             TracePrintf(0, "kernel calling yalnix cvar init\n");
-            regs[0] = KernelCvarInit(regs[0]);
+            regs[0] = KernelCvarInit((int *)regs[0]);
             break;
         case YALNIX_CVAR_SIGNAL:
             TracePrintf(0, "kernel yalnix cvar signal\n");
@@ -112,7 +112,7 @@ void TrapKernelHandler(void *ctx) {
             break;
         case YALNIX_LOCK_INIT:
             TracePrintf(0, "kernel calling yalnix lock init\n");
-            regs[0] = KernelLockInit(regs[0]);
+            regs[0] = KernelLockInit((int *)regs[0]);
             break;
         case YALNIX_LOCK_ACQUIRE:
             TracePrintf(0, "kernel calling yalnix lock acquire\n");

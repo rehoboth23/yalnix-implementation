@@ -214,6 +214,15 @@ int KernelAcquire(int lock_id, UserContext *uctxt);
  */
 int KernelRelease(int lock_id);
 
+
+/**
+ * @brief 
+ * 
+ * @param cvar_idp 
+ * @return int 
+ */
+int KernelCvarInit(int *cvar_idp);
+
 /**
  * @brief 
  * 
