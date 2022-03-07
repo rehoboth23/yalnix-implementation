@@ -618,17 +618,196 @@ int KernelTtyWrite(UserContext *uctxt, int tty_id, void *buf, int len) {
  * @return int 
  */
 int KernelPipeInit(int *pipe_idp) {
-    // return error if address null
 
-    // allocate p_max bytes in kernel memory
+    TracePrintf(0,"Entered KernelPipeInit...\n");
 
+    TracePrintf(0,"Here's the head_pipe: %p\n",head_pipe);
     // generate pipe id by looking at other existing pipes
     // initialize pipe with its assigned id
-    // save id at *pipe_idp
 
-    // return error if anything failed (e.g. no more memory)
+    if (pipe_idp == NULL) {
+        TracePrintf(0,"ERROR: KernelPipeInit received NULL pipe_idp\n");
+        return ERROR;
+    }
+
+    int id = add_pipe(head_pipe);
+    if (id == ERROR) {
+        TracePrintf(0,"ERROR: KernelPipeInit failed to set up pipe\n");
+        return ERROR;
+    }
+    
+    // save id at *pipe_idp
+    *pipe_idp = id;
 
     // return 0
+    return 0;
+}
+
+/**
+ * @brief 
+ * 
+ * @param pipe_id 
+ * @param buf 
+ * @param len 
+ * @param uctxt
+ * @return int 
+ */
+int KernelPipeRead(int pipe_id, void *buf, int len, UserContext *uctxt) {
+    TracePrintf(0,"Entered KernelPipeRead...\n");
+    // check arguments are valid (no negatives or nulls)
+        // error if anything invalid
+    if (buf == NULL) {
+        TracePrintf(0,"ERROR: KernelPipeRead received null buffer\n");
+        return ERROR;
+    }
+    if ((len < 0) || (len > PIPE_BUFFER_LEN)) {
+        TracePrintf(0,"ERROR: invalid read length received: %d\n",len);
+        return ERROR;
+    }
+
+
+
+    // check ids of pipes, get the matchcing pipe
+    pipe_t* curr_pipe = get_pipe(head_pipe,pipe_id);
+    if (curr_pipe == NULL) {
+        TracePrintf(0,"ERROR: KernelPipeRead, get_pipe failed\n");
+        return ERROR;
+    }
+
+    // if current pipe is taken
+    if (curr_pipe->being_used == PIPE_NOT_FREE) {
+        TracePrintf(0,"KernelPipeRead: detected that pipe %d is busy right now!\n",curr_pipe->id);
+
+        // enter waiting queue
+        activePCB->blocked_code = BLOCKED_PIPE_READ;
+        queue_add(curr_pipe->queue,activePCB,activePCB->pid);
+
+        // swap process
+        SwapProcess(blocked_q,uctxt);
+    }
+    
+    
+    // block readers while pipe is empty
+    while (curr_pipe->plen == 0) {
+    // block caller
+        TracePrintf(0,"KernelPipeRead: detected that pipe %d is empty right now!\n",curr_pipe->id);
+
+        // book keeping
+        activePCB->blocked_code = BLOCKED_PIPE_READ;
+        queue_add(curr_pipe->queue,activePCB,activePCB->pid);
+
+        // swap to blocked queue
+        SwapProcess(blocked_q,uctxt);
+
+    }
+
+    // mark pipe as taken
+    TracePrintf(0,"KernelPipeRead: marking pipe as taken...\n");
+    curr_pipe->being_used = PIPE_NOT_FREE;
+
+    int amount_read;
+        
+    // if len < plen, we give only len data
+    if (curr_pipe->plen > len) {
+
+        // put len data in buf
+        memcpy(buf,curr_pipe->buf,len);
+        
+        // remove len data from pipe
+        for (int i = 0; i < curr_pipe->plen - len ; i++) {
+            curr_pipe->buf[i] = curr_pipe->buf[i + len];
+        }
+
+        // update length of pipe
+        curr_pipe->plen = curr_pipe->plen - len;
+
+        // so we read len bytes
+        amount_read = len;
+    }
+    // if len >= plen, we give everything in the pipe
+    else { 
+
+        // put plen data in buf
+        memcpy(buf,curr_pipe->buf,curr_pipe->plen);
+        // remove plen data from pipeone
+        memset(curr_pipe->buf,0,curr_pipe->plen);
+        // update length of pipe
+        int tmp = curr_pipe->plen;
+        curr_pipe->plen = 0;
+
+        // so we read tmp amount of data
+        amount_read = tmp;
+    }
+        
+    
+    // if there's stuff to be read, wake up the first process in line
+    if (curr_pipe->plen > 0) {
+
+        // if there are process waiting
+        if (curr_pipe->queue->size > 0) {
+            pcb_t* process_to_wake = queue_pop(curr_pipe->queue);
+
+            // update bookkeeping
+            process_to_wake->blocked_code = NOT_BLOCKED;
+
+            // remove from blocked_q
+            for (int i = 0; i < blocked_q->size; i++) {
+                // pop process off blocked queue
+                pcb_t* curr_pcb = queue_pop(blocked_q);
+
+                // if it's our desired process, break, otherwise add it back to queue
+                if (curr_pcb->pid = process_to_wake->pid) {
+                    break;
+                }
+                else {
+                    queue_add(blocked_q,curr_pcb,curr_pcb->pid);
+                }
+            }
+            // add to ready_q   
+            queue_add(ready_q,process_to_wake,process_to_wake->pid);
+        }
+    }
+
+    // if there's nothing to be read, wake up writers only
+    else {
+        
+        // looping through the queue of processes waiting to read/write
+        for (int i =0; i < curr_pipe->queue->size; i++) {
+            pcb_t* process_to_wake = queue_pop(curr_pipe->queue);
+
+            // if they're waiting to write, wake them up!
+            if (process_to_wake->blocked_code = BLOCKED_PIPE_WRITE) {
+
+                // update bookkeeping
+                process_to_wake->blocked_code = NOT_BLOCKED;
+
+                    // remove from blocked_q
+                for (int i = 0; i < blocked_q->size; i++) {
+                    // pop process off blocked queue
+                    pcb_t* curr_pcb = queue_pop(blocked_q);
+
+                    // if it's our desired process, we're good, otherwise add it back to queue
+                    if (curr_pcb->pid = process_to_wake->pid) {
+                        queue_add(ready_q,curr_pcb,curr_pcb->pid);
+                        break;
+                    }
+                    else {
+                        queue_add(blocked_q,curr_pcb,curr_pcb->pid);
+                    }
+                }
+                // break out, we're waking up only 1 
+                break;
+            } else {
+                // otherwise add it back to queue
+                queue_add(blocked_q,process_to_wake,process_to_wake->pid);
+            }
+        }
+    }
+
+    // pipe no longer taken
+    TracePrintf(0,"KernelPipeRead: Freeing pipe...\n");
+    curr_pipe->being_used = PIPE_FREE;
+    return amount_read;
 }
 
 /**
@@ -639,58 +818,113 @@ int KernelPipeInit(int *pipe_idp) {
  * @param len 
  * @return int 
  */
-int KernelPipeRead(int pipe_id, void *buf, int len) {
+int KernelPipeWrite(int pipe_id, void *buf, int len, UserContext *uctxt) {
+    TracePrintf(0,"Entered KernelPipeWrite...\n");
     // check arguments are valid (no negatives or nulls)
-        // error if anything invalid
+    if (pipe_id <= 0) {
+        TracePrintf(0,"ERROR: KernelPipeWrite got invalid pipe_id %d\n",pipe_id);
+        return ERROR;
+    }
+    if ((len < 0) || (len > PIPE_BUFFER_LEN)) {
+        TracePrintf(0,"ERROR: KernelPipeWrite got invalid len %d\n",len);
+        return ERROR;
+    }
+    if (buf == NULL) {
+        TracePrintf(0,"ERROR: KernelPipeWrite got null buffer\n");
+        return ERROR;
+    }
 
     // check ids of pipes
     // if id matches
+    pipe_t* curr_pipe = get_pipe(head_pipe,pipe_id);
 
-    // get plen, current length of data in pipe
+    if (curr_pipe == NULL) {
+        TracePrintf(0,"ERROR: KernelPipeWrite, get_pipe failed\n");
+    }
 
-    // if pipe is empty
-        // block caller
-    // if len < plen
-        // put len data in buf, and remove len data from pipe
-        // return len
-    // if len > plen
-        // put plen data into buf,remove plen data from pipe
-        // return plen
+    // if current pipe is taken
+    while (curr_pipe->being_used == PIPE_NOT_FREE) {
 
-    // return error if any of the pipe manipulating functions fail
-}
+        TracePrintf(0,"KernelPipeWrite: detected that pipe %d is busy right now!\n",curr_pipe->id);
 
-/**
- * @brief 
- * 
- * @param pipe_id 
- * @param buf 
- * @param len 
- * @return int 
- */
-int KernelPipeWrite(int pipe_id, void *buf, int len) {
-    // check arguments are valid (no negatives or nulls)
-        // error if anything invalid
+        // enter waiting queue
+        activePCB->blocked_code = BLOCKED_PIPE_WRITE;
+        queue_add(curr_pipe->queue,activePCB,activePCB->pid);
 
-    // check ids of pipes
-    // if id matches
+        // swap process
+        SwapProcess(blocked_q,uctxt);
+    }
 
-    // get plen, current length of data in pipe
+    // mark pipe is being used
+    curr_pipe->being_used = PIPE_NOT_FREE;
+    TracePrintf(0,"KernelPipeWrite: marking pipe as taken...\n");
+
 
     // int available space = max pipe length - plen
+    int available_space = PIPE_BUFFER_LEN - curr_pipe->plen;
+    int amount_written;
 
-    // if available space >= len
+    // if available space >= len, so if there's enough space to put all the stuff in
+    if (available_space >= len) {
         // put len data from buf into pipe
-        // signal any readers
-        // return len
-    
-    // else if available space < len
-        // put available space data from buf into pipe
-        // signal any readers
-        // return available space
+        memcpy(curr_pipe->buf + curr_pipe->plen,buf,len);
+        TracePrintf(0,"Wrote %d many bytes of \"%s\"\n",len,buf);
+        // update length of pipe
+        curr_pipe->plen = curr_pipe->plen + len;
 
-    // return error if we get here
+        amount_written = len;
+    }
+
+
+    // else if available space < len
+    else {
+        // put available space amount of data from buf into pipe
+        memcpy(curr_pipe->buf + curr_pipe->plen,buf,available_space);
+        
+        // update length of pipe
+        curr_pipe->plen = curr_pipe->plen + available_space;
+
+        amount_written = available_space;
+    }
+    
+    // broadcast: signal all readers and writers
+    // if we signal only one, we risk processes never waking up when they should
+
+    TracePrintf(0,"Current queue to read/write pipe %d is %d\n",curr_pipe->id,curr_pipe->queue->size);
+
+    if (curr_pipe->queue->size > 0) {
+        // looping through the queue of processes waiting to read/write
+        for (int i =0; i < curr_pipe->queue->size; i++) {
+            pcb_t* process_to_wake = queue_pop(curr_pipe->queue);
+
+            // update bookkeeping
+            process_to_wake->blocked_code = NOT_BLOCKED;
+
+            // remove from blocked_q
+            for (int i = 0; i < blocked_q->size; i++) {
+                // pop process off blocked queue
+                pcb_t* curr_pcb = queue_pop(blocked_q);
+
+                // if it's our desired process, we're good, otherwise add it back to queue
+                if (curr_pcb->pid = process_to_wake->pid) {
+                    queue_add(ready_q,curr_pcb,curr_pcb->pid);
+                }
+                else {
+                    queue_add(blocked_q,curr_pcb,curr_pcb->pid);
+                }
+            }
+        }
+    }
+
+    // mark pipe as free
+    TracePrintf(0,"KernelPipeWrite done, marking pipe as free...\n");
+    curr_pipe->being_used = PIPE_FREE;
+
+    // return number of bytes written
+    return amount_written;
+    
 }
+
 
 // ==========================================
 // =    Synchronization Syscalls 3.1.4      =

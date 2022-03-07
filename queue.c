@@ -38,13 +38,16 @@ static void qnode_delete(qnode_t * node, void (*dataDelete) (pcb_t *data));
  * @brief initializes the queue at the inner pointer
  * 
  * @param queue pointer to queue pointer
- * @return int 
- *  - 0 if succesful 
- *  - 1 otherwise
+ * @return queue
+ *  - pointer to queue if all good
+ *  - NULL if otherwise
  */
 queue_t * queue_init() {
     queue_t *queue = malloc(sizeof(queue_t));
-    if (queue == NULL ) return NULL;
+    if (queue == NULL ) {
+        TracePrintf(0,"ERROR: queue_init malloc failed\n");
+        return NULL;
+    }
     queue->id = 0; 
     queue->size = 0; 
     queue->head = NULL; 
@@ -134,7 +137,7 @@ pcb_t *queue_peek(queue_t *queue) {
  * 
  * @param queue 
  * @return int 
- * size of queu
+ * size of queue
  * -1 if something went wrong.
  */
 int queue_size(queue_t *queue) {

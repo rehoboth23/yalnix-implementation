@@ -14,10 +14,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "queue.h"
+#include "pipe.h"
 #include "kernel.h"
 #include "include.h"
 #include "traphandlers.h"
 #include "process.h"
+
+
 
 void *kernel_brk;
 char* tracefile; //= TRACE;
@@ -34,12 +37,14 @@ queue_t *ttyWriteQueues[NUM_TERMINALS];
 char *ttyReadbuffers[NUM_TERMINALS];
 int ttyWriteTrackers[NUM_TERMINALS];
 int ttyReadTrackers[NUM_TERMINALS];
+pipe_t *head_pipe;
 list_t *lock_list;
 list_t *cvar_list;
 int lock_status[MAX_LOCKS];
 int cvar_status[MAX_CVARS];
 queue_t *lockAquireQueues[MAX_LOCKS];
 queue_t *cvarWaitQueues[MAX_CVARS];
+
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -134,7 +139,10 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
     // set up all global structures
     if (SetUpGlobals() == ERROR) {
         TracePrintf(0,"ERROR: KernelStart, Set up globals failed.\n");
-    }
+    }  
+
+
+    TracePrintf(0,"=-=We've set up globals, head pipe is at %p\n",head_pipe);
 
 // ============================= //
 //   SET UP IDLEPCB AND DOIDLE   //
@@ -178,6 +186,7 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
     KernelContextSwitch(KCCopy, progPCB, NULL);
 
     TracePrintf(0,"Exiting KernelStart...\n");
+    TracePrintf(0,"btw head pipe is at %p\n",head_pipe);
 }
 
 /**
@@ -185,10 +194,17 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
  * 
  */
 int SetUpGlobals() {
+
+    // global queues for processes
     ready_q = queue_init();
     blocked_q = queue_init();
     defunct_q = queue_init();
+
+    // linked list of free page frames
     pfn_list = list_init();
+
+    // global queues for processes reading/writing to terminal
+
     lock_list = list_init();
     cvar_list = list_init();
     for (int i = 0; i < NUM_TERMINALS; i++) {
@@ -199,6 +215,8 @@ int SetUpGlobals() {
         ttyReadTrackers[i] = 0;
         memset(ttyReadbuffers[i], 0, TERMINAL_MAX_LINE);
     }
+
+    // error checking global queues
 
     for (int i = 0; i < MAX_LOCKS; i++) {
         lockAquireQueues[i] = queue_init();
@@ -216,17 +234,22 @@ int SetUpGlobals() {
     }
 
 
+
     if (ready_q == NULL || blocked_q == NULL || defunct_q == NULL || pfn_list == NULL) {
-        TracePrintf(0, "ERROR: SetUpGlobals, initalization of queues failed");
+        TracePrintf(0, "ERROR: SetUpGlobals, initalization of queues failed\n");
         return ERROR;
     }
 
+    // error checking pfn_list
     for (int fr_number = num_of_frames - 1; fr_number >= VMEM_1_BASE >> PAGESHIFT; fr_number--) {
         if (list_add(pfn_list, (void *) fr_number) == ERROR) {
-            TracePrintf(0, "ERROR: SetUpGlobals, adding to list failed");
+            TracePrintf(0, "ERROR: SetUpGlobals, adding to list failed\n");
             return ERROR;
         }
     }
+
+    // set up head pipe
+    head_pipe = init_head_pipe();
 
     return 0;
 }
