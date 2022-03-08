@@ -930,8 +930,6 @@ int KernelPipeWrite(int pipe_id, void *buf, int len, UserContext *uctxt) {
 // =    Synchronization Syscalls 3.1.4      =
 // ==========================================
 
-// What does he mean by synchronization calls operating on processes vs pthreads???
-
 /**
  * @brief 
  * 
@@ -1006,7 +1004,7 @@ int KernelCvarInit(int *cvar_idp) {
         return ERROR;
     }
     *cvar_idp = (int) list_pop(cvar_list);
-    cvar_status[*cvar_idp] = USED_CVAR;
+    cvar_status[(*cvar_idp) - MAX_LOCKS] = USED_CVAR;
     return SUCCESS;
 }
 
@@ -1018,9 +1016,9 @@ int KernelCvarInit(int *cvar_idp) {
  * @return int 
  */
 int KernelCvarSignal(int cvar_idp, UserContext *uctxt) {
-    if (cvar_idp < 0 || uctxt == NULL || cvar_status[cvar_idp] == UNUSED_CVAR) return ERROR;
-    if (cvarWaitQueues[cvar_idp]->size > 0) {
-        pcb_t *receiver = queue_pop(cvarWaitQueues[cvar_idp]);
+    if (cvar_idp < 0 || uctxt == NULL || cvar_status[cvar_idp - MAX_LOCKS] == UNUSED_CVAR) return ERROR;
+    if (cvarWaitQueues[cvar_idp - MAX_LOCKS]->size > 0) {
+        pcb_t *receiver = queue_pop(cvarWaitQueues[cvar_idp - MAX_LOCKS]);
         queue_add(ready_q, receiver, receiver->pid);
     }
     return SUCCESS;
@@ -1034,9 +1032,9 @@ int KernelCvarSignal(int cvar_idp, UserContext *uctxt) {
  * @return int 
  */
 int KernelCvarBroadcast(int cvar_idp, UserContext *uctxt) {
-    if (cvar_idp < 0 || uctxt == NULL || cvar_status[cvar_idp] == UNUSED_CVAR) return ERROR;
+    if (cvar_idp < 0 || uctxt == NULL || cvar_status[cvar_idp - MAX_LOCKS] == UNUSED_CVAR) return ERROR;
     pcb_t *receiver;
-    while ( (receiver = queue_pop(cvarWaitQueues[cvar_idp])) != NULL ) {
+    while ( (receiver = queue_pop(cvarWaitQueues[cvar_idp - MAX_LOCKS])) != NULL ) {
         queue_add(ready_q, receiver, receiver->pid);
     }
     return SUCCESS;
@@ -1052,7 +1050,7 @@ int KernelCvarBroadcast(int cvar_idp, UserContext *uctxt) {
  */
 int KernelCvarWait(int cvar_idp, int lock_id, UserContext *uctxt) {
     if (cvar_idp < 0 || 
-        cvar_status[cvar_idp] == UNUSED_CVAR ||
+        cvar_status[cvar_idp - MAX_LOCKS] == UNUSED_CVAR ||
         lock_id < 0 ||
         lock_status[lock_id] == UNUSED_LOCK ||
         uctxt == NULL
@@ -1060,7 +1058,7 @@ int KernelCvarWait(int cvar_idp, int lock_id, UserContext *uctxt) {
        return ERROR;
    }
    if (KernelRelease(lock_id) == ERROR) return ERROR;
-   SwapProcess(cvarWaitQueues[cvar_idp], uctxt);
+   SwapProcess(cvarWaitQueues[cvar_idp - MAX_LOCKS], uctxt);
    return KernelAcquire(lock_id, uctxt);
 }
 
@@ -1070,7 +1068,7 @@ int KernelCvarWait(int cvar_idp, int lock_id, UserContext *uctxt) {
  * @param id 
  * @return int 
  */
-int KernelReclaim(int id) {
+int KernelReclaim(int id) { // Order of ID's should be as follows lock, condition variable, then pipe...
     // destory the lock identified by id, if there is one.
     // release associated resources, if any. 
 

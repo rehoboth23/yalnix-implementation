@@ -25,7 +25,7 @@ pipe_t * init_head_pipe() {
     }
 
     // initialize variables
-    pipe->id = 0;
+    pipe->id = MAX_LOCKS + MAX_CVARS + 1; // pipe ids will be at the end of these things
     pipe->next = NULL;
     pipe->plen = 0;
     pipe->being_used = PIPE_FREE;
