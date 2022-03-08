@@ -23,7 +23,7 @@ int main(int argc, char const *argv[]) {
 
     char* read_result = malloc(32);
 
-    TracePrintf(1,"pipe_basic.c:Reading 10 from pipe into a buffer...\n");
+    TracePrintf(1,"pipe_basic.c:Reading 5 from pipe into a buffer...\n");
 
     PipeRead(*pipe,read_result,5);
 

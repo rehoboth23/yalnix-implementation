@@ -48,6 +48,7 @@ int main(int argc, char const *argv[]) {
         
         Delay(5);
 
+        TracePrintf(1,"ipc_basic.c: parent (pid %d) wrote more to pipe1\n",pid);
         char* to_write = "test Test tEst teSt tesT\n";
         PipeWrite(*pipe1,to_write,strlen(to_write));        
 
