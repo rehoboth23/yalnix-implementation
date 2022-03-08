@@ -122,6 +122,10 @@ void TrapKernelHandler(void *ctx) {
             TracePrintf(0, "kernel calling yalnix lock release\n");
             regs[0] = KernelRelease(regs[0]);
             break;
+        case YALNIX_RECLAIM:
+            TracePrintf(0, "kernel calling yalnix reclaim\n");
+            regs[0] = KernelReclaim(regs[0]);
+            break;
 
         default:
             TracePrintf(0, "Unknown code\n");

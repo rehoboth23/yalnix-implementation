@@ -16,6 +16,10 @@ int main(int argc, char const *argv[]) {
     int *pipe = malloc(sizeof(int*));
 
     PipeInit(pipe);
+
+    Reclaim(*pipe);
+
+    PipeInit(pipe);
     
     TracePrintf(1,"pipe_basic.c: Writing \"Hello World!\" to pipe...\n");
 
@@ -28,5 +32,4 @@ int main(int argc, char const *argv[]) {
     PipeRead(*pipe,read_result,5);
 
     TracePrintf(1,"pipe_basic.c:Printing read_result: %s\n",read_result);
-    
 }

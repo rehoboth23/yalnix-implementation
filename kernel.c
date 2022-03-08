@@ -45,6 +45,8 @@ int cvar_status[MAX_CVARS];
 queue_t *lockAquireQueues[MAX_LOCKS];
 queue_t *cvarWaitQueues[MAX_CVARS];
 
+int id_tracker;
+
 
 /**
  * @brief initializes our OS: page tables for region0 and region1
@@ -59,6 +61,7 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
     TracePrintf(0,"DEBUG: Entering KernelStart\n");
 
     int global_clock_ticks = 0;
+    int id_tracker = 0;
     char *prog;
 
     if (cmd_args[0] == NULL) {
@@ -230,7 +233,8 @@ int SetUpGlobals() {
     for (int i = 0; i < MAX_CVARS; i++) {
         cvarWaitQueues[i] = queue_init();
         cvar_status[i] = UNUSED_CVAR;
-        list_add(cvar_list, (void *) i);
+        //TracePrintf(1, "adding to cvar list with %d\n", (MAX_LOCKS + i));
+        list_add(cvar_list, (void *) MAX_LOCKS + i + 1);
     }
 
 

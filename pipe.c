@@ -25,7 +25,7 @@ pipe_t * init_head_pipe() {
     }
 
     // initialize variables
-    pipe->id = 0;
+    pipe->id = MAX_LOCKS + MAX_CVARS + 1; // pipe ids will be at the end of these things
     pipe->next = NULL;
     pipe->plen = 0;
     pipe->being_used = PIPE_FREE;
@@ -96,13 +96,13 @@ int add_pipe(pipe_t *head_pipe) {
  * @return int, error code, 0 if success, ERROR if not
  */
 int remove_pipe(pipe_t *head_pipe, int id) {
-
+    
     // find the pipe before the pipe we want to remove
     pipe_t* curr_pipe = head_pipe;
     pipe_t* pipe_before;
 
+    // Interate through the list of pipes to find the pipe with id
     while (curr_pipe->id != id) {
-        
         if (curr_pipe->next == NULL) {
             TracePrintf(0,"ERROR: remove_pipe couldn't find pipe with id %d\n",id);
             return ERROR;
@@ -112,21 +112,13 @@ int remove_pipe(pipe_t *head_pipe, int id) {
         curr_pipe = curr_pipe->next;
     }
 
-    pipe_t* pipe_to_remove = curr_pipe->next;
-
-    // if the pipe we're removing is the tail, easy
-    if (pipe_to_remove->next == NULL) {
-        // then the pipe before becomes the new tail
-        curr_pipe->next = NULL;
-    } 
-    // otherwise, we need to join our curr pipe with the pipe after the one we're removing
-    else {
-        curr_pipe->next = pipe_to_remove->next;
+    if (curr_pipe->next == NULL) {
+        pipe_before->next = NULL;            // If current pipe is at the end of the list, set pipe before to null
+    } else {
+        pipe_before->next = curr_pipe->next; // If the current pipe is in the middle, set the pipe before to next pipe
     }
 
-    // free the pipe we're removing
-    free(pipe_to_remove);
-
+    free(curr_pipe);
     return 0;
 }
 

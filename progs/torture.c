@@ -147,6 +147,19 @@ int main(void)
 
     r = CvarInit(&cvar);
     assert(r != ERROR);
+
+    r = Reclaim(cvar);
+    assert(r != ERROR);
+
+    r = CvarInit(&cvar);
+    assert(r != ERROR);
+
+    r = LockInit(&mutex);
+    assert(r != ERROR);
+
+    r = Reclaim(mutex);
+    assert(r != ERROR);
+
     r = LockInit(&mutex);
     assert(r != ERROR);
 
