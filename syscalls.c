@@ -1069,6 +1069,34 @@ int KernelCvarWait(int cvar_idp, int lock_id, UserContext *uctxt) {
  * @return int 
  */
 int KernelReclaim(int id) { // Order of ID's should be as follows lock, condition variable, then pipe...
+
+    if (id < 0) {
+        TracePrintf(0, "ERROR: KernelReclaim, id < 0\n");
+    }
+
+    if (id <= MAX_LOCKS) {
+        if (list_add(lock_list, (void *) id) == ERROR) {
+            TracePrintf(0, "ERROR: KernelReclaim, adding to lock list failed");
+            return ERROR;
+        }
+    } else if (id <= MAX_CVARS) {
+        if (list_add(cvar_list, (void *) id) == ERROR) {
+            TracePrintf(0, "ERROR: KernelReclaim, adding to cvar list failed");
+            return ERROR;
+        }
+    } else {
+        if (remove_pipe(head_pipe, id) == ERROR) {
+            TracePrintf(0, "ERROR: KernelReclaim, Failed to remove pipe.\n");
+            return ERROR;
+        }
+
+        
+    }
+
+    
+    return 0;
+
+
     // destory the lock identified by id, if there is one.
     // release associated resources, if any. 
 
