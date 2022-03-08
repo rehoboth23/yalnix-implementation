@@ -1069,6 +1069,7 @@ int KernelCvarWait(int cvar_idp, int lock_id, UserContext *uctxt) {
  * @return int 
  */
 int KernelReclaim(int id) { // Order of ID's should be as follows lock, condition variable, then pipe...
+    TracePrintf(0, "In Kernel Reclaim function with id of %d!\n", id);
 
     if (id < 0) {
         TracePrintf(0, "ERROR: KernelReclaim, id < 0\n");

@@ -157,6 +157,12 @@ int main(void)
     r = LockInit(&mutex);
     assert(r != ERROR);
 
+    r = Reclaim(mutex);
+    assert(r != ERROR);
+
+    r = LockInit(&mutex);
+    assert(r != ERROR);
+
     TtyPrintf(0, "Enter 'go' to go:\n");
     do {
 	TtyRead(0, buf, 100);

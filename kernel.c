@@ -233,7 +233,8 @@ int SetUpGlobals() {
     for (int i = 0; i < MAX_CVARS; i++) {
         cvarWaitQueues[i] = queue_init();
         cvar_status[i] = UNUSED_CVAR;
-        list_add(cvar_list, (void *) MAX_LOCKS + i + 1);
+        TracePrintf(1, "adding to cvar list with %d\n", (MAX_LOCKS + i));
+        list_add(cvar_list, (void *) MAX_LOCKS + i);
     }
 
 
