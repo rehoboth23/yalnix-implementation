@@ -173,23 +173,23 @@ void KernelStart(char *cmd_args[], unsigned int pmem_size, UserContext *uctxt) {
     if (progPCB == NULL) {
         TracePrintf(0,"ERROR: KernelStart, progPCB failed to init.\n");
     }
-
+    // if an invalid program is loaded, print the error!
     if (LoadProgram(prog, cmd_args, progPCB) == ERROR) {
         TracePrintf(0,"ERROR: KernelStart, loadprogram for prog has failed.\n");
     }
-    
-    if (queue_add(ready_q, progPCB, progPCB->pid) == ERROR) {
-        TracePrintf(0,"ERROR: KernelStart, failed to add prog to ready q.\n");
-    }
+    else {
+        KernelContextSwitch(KCCopy, progPCB, NULL);
 
+        if (queue_add(ready_q, progPCB, progPCB->pid) == ERROR) {
+            TracePrintf(0,"ERROR: KernelStart, failed to add prog to ready q.\n");
+        }
+    }
     WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
     WriteRegister(REG_PTBR1, (unsigned int) idlePCB->user_page_table);
     memcpy(uctxt, &(idlePCB->user_context), sizeof(UserContext));
-
-    KernelContextSwitch(KCCopy, progPCB, NULL);
-
     TracePrintf(0,"Exiting KernelStart...\n");
     TracePrintf(0,"btw head pipe is at %p\n",head_pipe);
+    
 }
 
 /**
