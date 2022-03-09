@@ -260,7 +260,7 @@ int KernelExit(int exit_code, UserContext *uctxt) {
 int KernelWait(int *status_ptr, UserContext *uctxt) {
     // check status_ptr and num of children, it shouldn't be null or 0
     if (status_ptr == NULL || activePCB->num_children == 0) {
-        *status_ptr = ERROR;
+        // *status_ptr = ERROR;
         return ERROR;           // so calling wait with no children will just give ERROR
     }
 
@@ -467,6 +467,10 @@ int KernelTtyRead(UserContext *uctxt, int tty_id, void *buf, int len) {
     } else if (len < 0) {
         // some error stuff
         return ERROR;
+    }
+    else if ((tty_id < 0) || (tty_id > 3)){
+        return ERROR;
+    
     } else if (len == 0) return 0; // nothing to read
 
     // verify that there are no processes waiting to read from the terminal and there is input to read
@@ -537,7 +541,11 @@ int KernelTtyWrite(UserContext *uctxt, int tty_id, void *buf, int len) {
     if (ttyQueue == NULL) {
         // some error stuff
         return ERROR;
-    } else if (len < 0) {
+    } 
+    else if ((tty_id < 0) || (tty_id > 3)){
+        return ERROR;
+    }
+    else if (len < 0) {
         // some error stuff
         return ERROR;
     } else if (len == 0) return 0; // nothing to write

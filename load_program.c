@@ -40,7 +40,6 @@ int LoadProgram(char *name, char *args[], pcb_t *proc)
   if ((fd = open(name, O_RDONLY)) < 0)
   {
     TracePrintf(0, "LoadProgram: can't open file '%s'\n", name);
-    Halt();
     return ERROR;
   }
 
